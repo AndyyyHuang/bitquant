@@ -37,9 +37,7 @@ class MockSubtensor(bt.MockSubtensor):
 
 class MockMetagraph(bt.metagraph):
     def __init__(self, netuid=1, network="mock", subtensor=None):
-        super().__init__(
-            netuid=netuid, network=network, sync=False
-        )
+        super().__init__(netuid=netuid, network=network, sync=False)
 
         if subtensor is not None:
             self.subtensor = subtensor
@@ -69,7 +67,6 @@ class MockDendrite(bt.dendrite):
         run_async: bool = True,
         streaming: bool = False,
     ):
-
         if streaming:
             raise NotImplementedError("Streaming not implemented yet.")
 
@@ -106,7 +103,10 @@ class MockDendrite(bt.dendrite):
                     return s
 
             return await asyncio.gather(
-                *(single_axon_response(i, target_axon) for i, target_axon in enumerate(axons))
+                *(
+                    single_axon_response(i, target_axon)
+                    for i, target_axon in enumerate(axons)
+                )
             )
 
         return await query_all_axons(streaming)

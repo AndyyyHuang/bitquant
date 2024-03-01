@@ -1,4 +1,3 @@
-# TODO: delete
 <div align="center">
 
 # **Bittensor Subnet Template** <!-- omit in toc -->
