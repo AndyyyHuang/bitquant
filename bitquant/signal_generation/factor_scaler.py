@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from copy import deepcopy
-from utlis import calc_zscore_2d, calc_zscore_cross_section
+from bitquant.signal_generation.utlis import calc_zscore_2d, calc_zscore_cross_section
 
 class FactorScaler:
 

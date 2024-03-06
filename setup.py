@@ -68,10 +68,13 @@ setup(
     description="bitquant",  # TODO(developer): Change this value to your module subnet description.
     long_description=long_description,
     long_description_content_type="text/markdown",
+    packages= ["bitquant"],
     url="https://github.com/AndyyyHuang/bitquant",  # TODO(developer): Change this url to your module subnet github url.
     author="Andy Huang, Bob Zhang",  # TODO(developer): Change this value to your module subnet author name.
-    packages=find_packages(),
-    include_package_data=True,
+    # TODO: talib install requires install C TALIB library.... maybe find alternative
+    # TODO: numba requires numpy==1.24
+    # packages=find_packages(), # TODO: fix this
+    # include_package_data=True,
     author_email="",  # TODO(developer): Change this value to your module subnet author email.
     license="MIT",
     python_requires=">=3.8",
