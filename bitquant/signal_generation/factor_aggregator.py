@@ -6,12 +6,13 @@ import pandas as pd
 
 class FactorAggregatorIC:
     def __init__(self,
-                 data,
-                 training_window,
-                 predicting_window):
-        self.data = data
+                 scaled_factor_df,
+                 target,
+                 training_window):
+        self.scaled_factor_df = scaled_factor_df
+        self.target = target
         self.training_window = training_window
-        self.predicting_window = predicting_window
+
 
     def train(self):
         """IC Aggregator doesn't need any pretrain"""
@@ -20,21 +21,21 @@ class FactorAggregatorIC:
     def predict(self, rolling_type="avg", ic_type='pearson'):
         self.average_IC_combination(ic_type=ic_type)
         self.calculate_score(rolling_window=self.training_window, rolling_type=rolling_type)
-        prediction = self.score_df.unstack().iloc[-self.predicting_window:].stack()
+        prediction = self.score_df.iloc[-1]
         return prediction
 
 
     def average_IC_combination(self, ic_type):
-        time_idx_lis = pd.unique(self.scaled_data.index.get_level_values(0))
-        symbol_lis = pd.unique(self.scaled_data.index.get_level_values(1))
-        factor_lis = self.scaled_data.columns.tolist()[:-1]
+        time_idx_lis = pd.unique(self.scaled_factor_df.index.get_level_values(0))
+        symbol_lis = pd.unique(self.scaled_factor_df.index.get_level_values(1))
+        factor_lis = self.scaled_factor_df.columns.tolist()
         n = len(time_idx_lis)
         m = len(symbol_lis)
         k = len(factor_lis)
 
         self.factor_ic_df = pd.DataFrame(index=time_idx_lis, columns=factor_lis)
-        X_array = np.asarray(self.scaled_data.loc[:, factor_lis]).reshape(n, m, k).astype(np.float32)
-        y_array = np.asarray(self.scaled_data.loc[:, 'return_1']).reshape(n, m).astype(np.float32)
+        X_array = np.asarray(self.scaled_factor_df).reshape(n, m, k).astype(np.float32)
+        y_array = np.asarray(self.target).reshape(n, m).astype(np.float32)
 
         for i in range(n):
             X = X_array[i]
@@ -80,7 +81,7 @@ class FactorAggregatorIC:
                 x = factor_ic_df.iloc[i:i + rolling_window]
                 self.factor_ic_df_rolling.iloc[i] = self._simplecov_weight(x)
 
-        self.factor_exposure = self.scaled_data.loc[self.factor_ic_df_rolling.index, self.selected_factor_lis]
+        self.factor_exposure = self.scaled_factor_df.loc[self.factor_ic_df_rolling.index]
 
         self.score_df = pd.DataFrame(index=pd.unique(self.factor_exposure.index.get_level_values(0)),
                                              columns=pd.unique(self.factor_exposure.index.get_level_values(1)))

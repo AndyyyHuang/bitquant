@@ -6,43 +6,43 @@ from utlis import calc_zscore_2d, calc_zscore_cross_section
 class FactorScaler:
 
     def __init__(self,
-                 data,
-                 selected_factor_lis,
-                 scaling_window,
-                 training_window,
-                 predicting_window,
+                 factor_df,
+                 factor_lis=None,
+                 scaling_window=180,
                  orthogonalize=False,
                  orthogonal_method='symmetry',
                  ts_normalize=True,
                  cross_section_normalize=False):
 
-        self.selected_factor_lis = selected_factor_lis
-        self.data = deepcopy(data.loc[:, self.selected_factor_lis + ['return_1']])
+        self.factor_df = factor_df
+        if factor_lis is None:
+            self.factor_lis = self.factor_df.columns.tolist()
+        else:
+            self.factor_lis = factor_lis
         self.scaling_window = scaling_window
-        self.training_window = training_window
-        self.predicting_window = predicting_window
         self.orthogonalize = orthogonalize
         self.orthogonal_method = orthogonal_method
         self.ts_normalize = ts_normalize
         self.cross_section_normalize = cross_section_normalize
 
-    @classmethod
-    def scale_data(cls):
-        if cls.ts_normalize:
-            cls.scaled_data = cls.ts_normalize(data=cls.data,
-                                               selected_factor_lis=cls.selected_factor_lis,
-                                               rolling_window=cls.scaling_window)
-        if cls.cross_section_normalize:
-            cls.scaled_data = cls.cross_section_normalize(data=cls.scaled_data,
-                                                                   selected_factor_lis=cls.selected_factor_lis)
-        if cls.orthogonalize:
-            cls.scaled_data = cls.orthogonalize(data=cls.scaled_data,
-                                                         selected_factor_lis=cls.selected_factor_lis,
-                                                         orthogonal_method=cls.orthogonal_method)
-        return cls.scaled_data
+
+    def scale_data(self):
+        self.scaled_factor_df = deepcopy(self.factor_df)
+        if self.ts_normalize:
+            self.scaled_factor_df = self.process_ts_normalize(data=self.scaled_factor_df,
+                                             selected_factor_lis=self.factor_lis,
+                                             rolling_window=self.scaling_window)
+        if self.cross_section_normalize:
+            self.scaled_factor_df = self.process_cross_section_normalize(data=self.scaled_factor_df,
+                                                        selected_factor_lis=self.factor_lis)
+        if self.orthogonalize:
+            self.scaled_factor_df = self.process_orthogonalize(data=self.scaled_factor_df,
+                                              selected_factor_lis=self.factor_lis,
+                                              orthogonal_method=self.orthogonal_method)
+        return self.scaled_factor_df
 
     @classmethod
-    def ts_normalize(cls, data, selected_factor_lis, rolling_window):
+    def process_ts_normalize(cls, data, selected_factor_lis, rolling_window):
         cls.normalized_data = deepcopy(data)
 
         for factor in selected_factor_lis:
@@ -55,8 +55,9 @@ class FactorScaler:
             how='all').fillna(0).stack()
         cls.normalized_data.loc[tmp_factor_exposure.index, selected_factor_lis] = tmp_factor_exposure
         return cls.normalized_data
+
     @classmethod
-    def cross_section_normalize(cls, data, selected_factor_lis):
+    def process_cross_section_normalize(cls, data, selected_factor_lis):
         cls.normalized_data = deepcopy(data)
 
         for factor in selected_factor_lis:
@@ -70,7 +71,7 @@ class FactorScaler:
         return cls.normalized_data
 
     @classmethod
-    def orthogonalize(cls, data, selected_factor_lis, orthogonal_method):
+    def process_orthogonalize(cls, data, selected_factor_lis, orthogonal_method):
         cls.orthogonalized_data = deepcopy(data)
         cls.factors_df = cls.orthogonalized_data.loc[:, selected_factor_lis]
         time_idx_lis = pd.unique(cls.factors_df.index.get_level_values(0))

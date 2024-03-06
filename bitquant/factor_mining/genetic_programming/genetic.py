@@ -24,19 +24,14 @@ from sklearn.exceptions import NotFittedError
 from sklearn.utils import compute_sample_weight
 from sklearn.utils.validation import check_array, _check_sample_weight
 from sklearn.utils.multiclass import check_classification_targets
-from utils import _syntax_adapter
-from _program import _Program
-from fitness import _fitness_map, _Fitness, _weighted_spearman_3D, _weighted_pearson_3D, _weighted_Information_Ratio_3D
+from bitquant.factor_mining.genetic_programming.utils import _syntax_adapter, _partition_estimators, check_random_state, check_floats
+from bitquant.factor_mining.genetic_programming._program import _Program
+from bitquant.factor_mining.genetic_programming.fitness import _fitness_map, _Fitness, _extra_map, _weighted_pearson_3D, _weighted_Information_Ratio_3D
 import re
-from functions import _function_map, _Function, sig1 as sigmoid
-from utils import _partition_estimators
-from utils import check_random_state
-from fitness import _extra_map
-from add_ts_function import _extra_function_map
-from utils import check_floats
+from bitquant.factor_mining.genetic_programming.functions import _function_map, _Function, sig1 as sigmoid
 
 # 对字典进行合并
-all_cal_dictionary = dict(list(_function_map.items()) + list(_extra_function_map.items()))
+all_cal_dictionary = dict(list(_function_map.items()))
 __all__ = ['SymbolicRegressor', 'SymbolicClassifier', 'SymbolicTransformer']
 
 MAX_INT = np.iinfo(np.int32).max

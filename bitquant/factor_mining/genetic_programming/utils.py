@@ -9,12 +9,13 @@ order to maintain compatibility across different versions of scikit-learn.
 import numbers
 import numpy as np
 from joblib import cpu_count
-
+from copy import deepcopy
 
 def make_XY(df, index_name, columns_name, Y_column1,):
     '''
     return: X: ndarray[n_dates, n_feature, n_stocks], Y: ndarray[n_dates, n_stocks], X_feature_names
     '''
+    df = deepcopy(df.reset_index())
     df = df.pivot_table(index=[index_name], columns=[columns_name], sort=False, dropna=False)
     Y1 = df.loc[:,(Y_column1,)].to_numpy(dtype=np.double)
 

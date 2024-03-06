@@ -14,12 +14,10 @@ import numpy as np
 from joblib import wrap_non_picklable_objects
 from scipy.stats import rankdata, spearmanr
 import pandas as pd
-# import empyrical
+from numba import jit, prange
 __all__ = ['make_fitness']
 
-from numba import jit,prange
-import numba as nb
-from copy import  deepcopy
+
 
 @jit(nopython=True,nogil=True,parallel=True)
 def calc_zscore_2d(series,rolling_window):
@@ -374,20 +372,6 @@ def _bt_sharpe_old_version(y, y_pred, w, rolling_window_1=180, rolling_window_2=
     y_pred = calc_zscore_2d(y_pred, rolling_window_1)
     
     with np.errstate(divide='ignore', invalid='ignore'):
-        n_dates,n_stocks = y.shape
-        """
-        for current_date in range(n_dates):
-            # 首先需要把两边的nan的值全部同时删掉，相当于取交集
-            y_pred_cur_date = copy.deepcopy(y_pred[current_date,:])
-            y_current_date = copy.deepcopy(y[current_date,:])
-            for i in range(len(y_current_date)):
-                if y_current_date[i] != y_current_date[i] or y_pred_cur_date[i] != y_pred_cur_date[i]:
-                    y_current_date[i] = np.nan
-                    y_pred_cur_date[i] = np.nan
-
-            if np.sum(np.isnan(y_current_date)) == len(y_current_date) or np.sum(np.isnan(y_pred_cur_date)) == len(y_pred_cur_date):
-                continue
-        """   
 
         no_future_beta = []
         origin_signals_df = np.array([0]*y_pred.shape[1])
@@ -600,11 +584,11 @@ _fitness_map = {
 }
 
 _extra_map = {
-    "pearson_3d":weighted_pearson_3d,
-    "spearman_3d":weighted_spearman_3d,
-    "IR":weighted_information_ratio,
-    "sharpe":bt_sharpe,
-    "pnl":bt_pnl,
+    "pearson_3d": weighted_pearson_3d,
+    "spearman_3d": weighted_spearman_3d,
+    "IR": weighted_information_ratio,
+    "sharpe": bt_sharpe,
+    "pnl": bt_pnl,
     # alert开头的函数都不是用在gplearn里面的计算用的，而是最后show_program出指标的时候看IC符号的。
     # 之所有要这么干是因为，gpelarn里面IC越高越好，不管正负，但我们看的时候还是关注IC方向的。
     "alert_spearman":alert_weighted_spearman_3d,

@@ -14,10 +14,10 @@ Author: Shawn_RPC
 from copy import copy,deepcopy
 import numpy as np
 from sklearn.utils.random import sample_without_replacement
-from functions import _Function
-from utils import check_random_state
+from bitquant.factor_mining.genetic_programming.functions import _Function
+from bitquant.factor_mining.genetic_programming.utils import check_random_state
 import warnings
-from copy import  deepcopy
+from copy import deepcopy
 warnings.filterwarnings("ignore")
 
 class _Program(object):
