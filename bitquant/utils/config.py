@@ -3,6 +3,7 @@ import argparse
 import os
 
 
+# TODO way too verbose, clean up
 def check_config(cls, config: "bt.Config"):
     bt.axon.check_config(config)
     bt.logging.check_config(config)
