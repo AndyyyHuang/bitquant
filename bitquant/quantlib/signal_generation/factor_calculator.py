@@ -9,17 +9,16 @@ import re
 
 class FactorCalculator:
 
-    def __init__(self, data, factor_lis: list, function_map: dict, different_axis: list = ['ts', 'symbol', 'return_1']):
-        self.data = data
-        self.factor_lis = factor_lis
+    def __init__(self, function_map: dict, different_axis: list = ['ts', 'symbol', 'return_1']):
+
         self.function_map = function_map
         self.different_axis = different_axis
 
 
-    def calculate_factor(self):
-        factor_df = pd.DataFrame(index=self.data.index, columns=self.factor_lis)
-        for factor in self.factor_lis:
-            factor_df[factor] = self.calculate_factor_based_on_formulation(data=self.data, factor=factor, different_axis=self.different_axis, function_map=self.function_map)
+    def calculate_factor(self, data, factor_lis: list):
+        factor_df = pd.DataFrame(index=data.index, columns=factor_lis)
+        for factor in factor_lis:
+            factor_df[factor] = self.calculate_factor_based_on_formulation(data=data, factor=factor, different_axis=self.different_axis, function_map=self.function_map)
         return factor_df
 
 

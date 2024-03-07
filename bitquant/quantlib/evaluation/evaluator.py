@@ -56,10 +56,11 @@ class Evaluator:
         self.res = _start_loop(portfolio_weight_matrix, open_price_matrix, init_asset_value, taker_fee, volume_precision, min_notional)
         final_position = self.res[-1, :-1]
         final_cash = self.res[-1, -1]
-        final_asset_value = np.sum(final_position * close_price_matrix[-1]) + final_cash
+        latest_price = close_price_matrix[-1]
+        final_asset_value = np.sum(final_position * latest_price) + final_cash
         profit_ratio = final_asset_value / init_asset_value - 1
         return profit_ratio
 
     def check_delta_neutral(self, portfolio_weight):
-        return np.sum(portfolio_weight) == 0
+        return np.abs(np.sum(portfolio_weight)) < 1e-6
 

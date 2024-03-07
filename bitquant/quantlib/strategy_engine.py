@@ -13,26 +13,24 @@ class StrategyEngine:
     def __init__(self, data, init_factor_lis=None, factor_calculator=None, factor_scaler=None, factor_selector=None, factor_aggregator=None):
         self.data = data
         self.init_factor_lis = init_factor_lis
-        self.factor_calulator = factor_calculator
+        self.factor_calculator = factor_calculator
         self.factor_scaler = factor_scaler
         self.factor_selector = factor_selector
         self.factor_aggregator = factor_aggregator
 
     def check_delta_neutral(self, portfolio_weight):
-        return np.sum(portfolio_weight) == 0
+        return np.abs(np.sum(portfolio_weight)) < 1e-6
 
     def get_score(self):
-        self.factor_df = self.factor_calulator.calculate_factor(self.data, self.init_factor_lis)
 
-        self.scaled_factor_df = self.factor_scaler.scale_data(self.factor_df)
-
-        filtered_factor_lis = self.factor_selector.filter_out_high_corr_factor(self.scaled_factor_df, threshold=0.6, greater_is_better=False)
-        self.scaled_factor_df = self.scaled_factor_df.loc[:, filtered_factor_lis]
-
-        self.target = self.data.loc[self.scaled_factor_df.index, 'return_1']
-
-        self.factor_aggregator.train(self.scaled_factor_df, self.target)
-        scores = self.factor_aggregator.predict()
+        factor_df = self.factor_calculator.calculate_factor(self.data, self.init_factor_lis)
+        scaled_factor_df = self.factor_scaler.scale_data(factor_df, self.init_factor_lis)
+        filtered_factor_lis = self.factor_selector.filter_out_high_corr_factor(factor_df=scaled_factor_df, threshold=0.6,
+                                                                          greater_is_better=False)
+        scaled_factor_df = scaled_factor_df.loc[:, filtered_factor_lis]
+        target = self.data.loc[scaled_factor_df.index, 'return_1']
+        self.factor_aggregator.train()
+        scores = self.factor_aggregator.predict(scaled_factor_df=scaled_factor_df, target=target)
         return scores
 
     def run(self):
@@ -47,6 +45,7 @@ class StrategyEngine:
             portfolio_weight = normalized_scores / abs_sum
         else:
             portfolio_weight = normalized_scores
+
         """
         Another example:
         Another way you can consider is that: you can long the top 20% symbols with the highest scores and short the 20% symbols with the lowest scores

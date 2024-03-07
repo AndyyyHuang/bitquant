@@ -19,7 +19,6 @@ import talib as ta
 
 __all__ = ['make_function']
 
-from random import randint, choice
 
 class _Function(object):
     """A representation of a mathematical relationship, a node in a program.

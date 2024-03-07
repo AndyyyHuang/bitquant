@@ -6,38 +6,31 @@ from bitquant.quantlib.signal_generation.utlis import calc_zscore_2d, calc_zscor
 class FactorScaler:
 
     def __init__(self,
-                 factor_df,
-                 factor_lis=None,
                  scaling_window=180,
                  orthogonalize=False,
                  orthogonal_method='symmetry',
                  ts_normalize=True,
                  cross_section_normalize=False):
 
-        self.factor_df = factor_df
-        if factor_lis is None:
-            self.factor_lis = self.factor_df.columns.tolist()
-        else:
-            self.factor_lis = factor_lis
+
         self.scaling_window = scaling_window
         self.orthogonalize = orthogonalize
         self.orthogonal_method = orthogonal_method
         self.ts_normalize = ts_normalize
         self.cross_section_normalize = cross_section_normalize
 
-
-    def scale_data(self):
-        self.scaled_factor_df = deepcopy(self.factor_df)
+    def scale_data(self, factor_df, factor_lis):
+        self.scaled_factor_df = deepcopy(factor_df)
         if self.ts_normalize:
             self.scaled_factor_df = self.process_ts_normalize(data=self.scaled_factor_df,
-                                             selected_factor_lis=self.factor_lis,
+                                             selected_factor_lis=factor_lis,
                                              rolling_window=self.scaling_window)
         if self.cross_section_normalize:
             self.scaled_factor_df = self.process_cross_section_normalize(data=self.scaled_factor_df,
-                                                        selected_factor_lis=self.factor_lis)
+                                                        selected_factor_lis=factor_lis)
         if self.orthogonalize:
             self.scaled_factor_df = self.process_orthogonalize(data=self.scaled_factor_df,
-                                              selected_factor_lis=self.factor_lis,
+                                              selected_factor_lis=factor_lis,
                                               orthogonal_method=self.orthogonal_method)
         return self.scaled_factor_df
 

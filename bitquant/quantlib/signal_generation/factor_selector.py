@@ -1,12 +1,12 @@
 import pandas as pd
 
 class FactorSelector:
-    def __init__(self, factor_df):
-        self.corr_df = factor_df.corr()
+    def __init__(self):
+        pass
 
-
-    def filter_out_high_corr_factor(self, threshold=0.6, greater_is_better=False):
+    def filter_out_high_corr_factor(self, factor_df, threshold=0.6, greater_is_better=False):
         """Backforward select"""
+        self.corr_df = factor_df.corr()
         filtered_factor_lis = []
         factor_lis = self.corr_df.columns.tolist()
         for i in reversed(range(len(self.corr_df))):
@@ -19,9 +19,10 @@ class FactorSelector:
                     filtered_factor_lis.insert(0, factor_lis[i])
         return filtered_factor_lis
 
-    def find_low_corr_combination(self, init_factor, threshold=0.6, combination_num=3, max_num_per_iter=None,
+    def find_low_corr_combination(self, factor_df, init_factor, threshold=0.6, combination_num=3, max_num_per_iter=None,
                                   greater_is_better=False):
         """tree search algorithm"""
+        self.corr_df = factor_df.corr()
         factor_lis = self.corr_df.columns.tolist()
         if max_num_per_iter is None:
             max_num_per_iter = len(factor_lis)
