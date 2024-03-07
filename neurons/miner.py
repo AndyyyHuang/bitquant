@@ -27,7 +27,6 @@ import template
 # import base miner class which takes care of most of the boilerplate
 from template.base.miner import BaseMinerNeuron
 
-
 class Miner(BaseMinerNeuron):
     """
     Your miner neuron class. You should use this class to define your miner's behavior.
