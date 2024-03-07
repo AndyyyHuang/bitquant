@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from bitquant.factor_mining.genetic_programming.genetic import SymbolicTransformer
-from bitquant.factor_mining.genetic_programming.functions import *
-from bitquant.factor_mining.genetic_programming.functions import _function_map
-from bitquant.factor_mining.genetic_programming.utils import make_XY
+from bitquant.quantlib.factor_mining.genetic_programming.genetic import SymbolicTransformer
+from bitquant.quantlib.factor_mining.genetic_programming.functions import *
+from bitquant.quantlib.factor_mining.genetic_programming.functions import _function_map
+from bitquant.quantlib.factor_mining.genetic_programming.utils import make_XY
 
 def preprocess_data(bar, st="2023-06-01", et="2025-01-01"):
     bar = bar.loc[(bar.index.get_level_values(0) > pd.to_datetime(st, utc=True)) & (bar.index.get_level_values(0) <= pd.to_datetime(et, utc=True))]
@@ -22,8 +22,8 @@ def preprocess_data(bar, st="2023-06-01", et="2025-01-01"):
 
 if __name__ == "__main__":
 
-    aggregated_kline_fp = Path(__file__).resolve().parent.parent / "data_stream/local_data/binanceusdm_4h_aggregated_kline.parquet"
-    processed_kline_fp = Path(__file__).resolve().parent.parent / "data_stream/local_data/binanceusdm_4h_processed_kline.parquet"
+    aggregated_kline_fp = Path(__file__).resolve().parent.parent.parent / "data/local_data/binanceusdm_4h_aggregated_kline.parquet"
+    processed_kline_fp = Path(__file__).resolve().parent.parent.parent / "data/local_data/binanceusdm_4h_processed_kline.parquet"
     data = pd.read_parquet(aggregated_kline_fp)
     data = preprocess_data(data, st="2023-06-01", et="2025-01-01")
     data.to_parquet(processed_kline_fp)

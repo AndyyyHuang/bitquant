@@ -24,11 +24,11 @@ from sklearn.exceptions import NotFittedError
 from sklearn.utils import compute_sample_weight
 from sklearn.utils.validation import check_array, _check_sample_weight
 from sklearn.utils.multiclass import check_classification_targets
-from bitquant.factor_mining.genetic_programming.utils import _syntax_adapter, _partition_estimators, check_random_state, check_floats
-from bitquant.factor_mining.genetic_programming._program import _Program
-from bitquant.factor_mining.genetic_programming.fitness import _fitness_map, _Fitness, _extra_map, _weighted_pearson_3D, _weighted_Information_Ratio_3D
+from bitquant.quantlib.factor_mining.genetic_programming.utils import _syntax_adapter, _partition_estimators, check_random_state, check_floats
+from bitquant.quantlib.factor_mining.genetic_programming._program import _Program
+from bitquant.quantlib.factor_mining.genetic_programming.fitness import _fitness_map, _Fitness, _extra_map, _weighted_pearson_3D, _weighted_Information_Ratio_3D
 import re
-from bitquant.factor_mining.genetic_programming.functions import _function_map, _Function, sig1 as sigmoid
+from bitquant.quantlib.factor_mining.genetic_programming.functions import _function_map, _Function, sig1 as sigmoid
 
 # 对字典进行合并
 all_cal_dictionary = dict(list(_function_map.items()))
@@ -450,7 +450,7 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
         params['rolling_window_2'] = self.rolling_window_2
         params['fee'] = self.fee
 
-        
+
         if hasattr(self, '_transformer'):
             params['_transformer'] = self._transformer
         else:
@@ -459,7 +459,7 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
         params['init_function_set'] = self.init_function_set
         params['arities'] = self._arities
         params['method_probs'] = self._method_probs
-        
+
 
         if not self.warm_start or not hasattr(self, '_programs'):
             # Free allocated memory, if any
@@ -529,9 +529,9 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
                         _parallel_evolve_3D(n_programs[i], parents, X, y, sample_weight, seeds[starts[i]:starts[i + 1]],
                                             params))
 
-            evolve_time = time() 
+            evolve_time = time()
             print("Evolve finished, time cost: {} seconds".format(round(evolve_time - start_time, 1)))
-            
+
             # print("Reduce, maintaining order across different n_jobs")
             # Reduce, maintaining order across different n_jobs
             population = list(itertools.chain.from_iterable(population))
@@ -649,7 +649,7 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
                             break
                     if condition:
                         self.focus_program.append((program, gen))
-            
+
             # cal focus program
             focus_time = time()
             print("cal focus program finished time cost: {} seconds".format(focus_time - evolve_time))
@@ -685,7 +685,7 @@ class BaseSymbolic(BaseEstimator, metaclass=ABCMeta):
             """
             remove_time = time()
             print("Remove old programs finished time cost: {} seconds".format(round(remove_time-focus_time, 1)))
-            
+
             # print("Record run details")
             # Record run details
             if self._metric.greater_is_better:
@@ -1685,7 +1685,7 @@ class SymbolicTransformer(BaseSymbolic, TransformerMixin):
                 RankIC_cal_code = "alert_spearman({},Y,sample_weight)".format(formulation)
 
                 for key, value in all_cal_dictionary.items():
-                    
+
                     IC_cal_code = re.sub(r"\b" + re.escape(key) + r"\b", "all_cal_dictionary['{}']".format(key), IC_cal_code)
                     IR_cal_code = re.sub(r"\b" + re.escape(key) + r"\b", "all_cal_dictionary['{}']".format(key), IR_cal_code)
                     RankIC_cal_code = re.sub(r"\b" + re.escape(key) + r"\b", "all_cal_dictionary['{}']".format(key), RankIC_cal_code)

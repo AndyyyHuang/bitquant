@@ -1,10 +1,11 @@
-from bitquant.factor_mining.genetic_programming.functions import _function_map as function_map
-from bitquant.factor_mining.genetic_programming.functions import *
-from bitquant.factor_mining.genetic_programming.utils import make_XY
+from bitquant.quantlib.factor_mining.genetic_programming.functions import _function_map as function_map
+from bitquant.quantlib.factor_mining.genetic_programming.functions import *
+from bitquant.quantlib.factor_mining.genetic_programming.utils import make_XY
 import pandas as pd
 import re
 
-global function_map
+# TODO: what is wrong with this?
+# global function_map
 
 class FactorCalculator:
 

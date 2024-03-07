@@ -14,8 +14,8 @@ Author: Shawn_RPC
 from copy import copy,deepcopy
 import numpy as np
 from sklearn.utils.random import sample_without_replacement
-from bitquant.factor_mining.genetic_programming.functions import _Function
-from bitquant.factor_mining.genetic_programming.utils import check_random_state
+from bitquant.quantlib.factor_mining.genetic_programming.functions import _Function
+from bitquant.quantlib.factor_mining.genetic_programming.utils import check_random_state
 import warnings
 from copy import deepcopy
 warnings.filterwarnings("ignore")
@@ -25,19 +25,19 @@ class _Program(object):
     一个能够不断进化的表达式的类库
     '''
     """
-    
+
     初始化参数
     ----------
     function_set : list
         一个在表达式类库中合法的函数集合
 
     arities : dict
-        
+
         一个以字典形式展示的算子库`{arity: [functions]}`这里的算子指的是表达式需要的算子的个数。
         举例：ADD(X1,X2)就是一个二元的算子，它需要把两个特征输入进行相加。因此在这个arties字典中
         它需要存储为{2:[Add(_Function),...,]}的形式。而这个对象是需要和function_set一一对应的。
-        
-        
+
+
     init_depth : tuple of two ints
         初始深度，这个深度会在构建表达式的时候到。具体的逻辑关系是这样的：
         在构建一个原始的随机表达式(具体指的是由build_program 函数直接生成而没有经过遗传的表达式)
@@ -63,7 +63,7 @@ class _Program(object):
 
     metric : _Fitness object
         衡量方法，确定某个表达式是否符合我们需求的函数，感觉和强化学习中的reward以及深度学习中的loss有点类似
-        
+
 
     p_point_replace : float
         The probability that any given node will be mutated during point
@@ -75,7 +75,7 @@ class _Program(object):
         选中。这个参数值越高就越抑制随着遗传代际增加过程中较难避免的表达式的冗余生长——“膨胀”。所谓
         “膨胀”，就是指在遗传进化的过程中表达式的长度变长了，公式变复杂了，但fitness却没有一个显著
         地增长，而仅仅带来了时空间的浪费。在持续的遗传中，这个参数最好被适当调整。
-        
+
 
     random_state : RandomState instance
         随机数的生成对象。并行计算相同表达式对象的时候可以通过这个参数传递不同的随机状态来保证
@@ -113,11 +113,11 @@ class _Program(object):
         可以用作下一代的样本的挑选。而样本外适应度可以说明一些问题或许可以被利用起来。只有当
         传入参数的：max_samples<1.0才会起作用。这是因为比如max_samples=0.9的时候，90%
         的数据会被采样出来作为样本内，而剩下的10%就是样本外。
-        
+
 
     parents : dict, or None
         如果为空，则这是一个从初始规模开始的原始随机的表达式生成；否则就是一个有父类的再训练过程，
-        
+
 
     depth_ : int
         当前表达式的深度
@@ -202,7 +202,7 @@ class _Program(object):
         if len(self.init_function_set) != 0:
             # 随机选择第一个初始的函数算子
             p = 0.33
-            
+
             # 给定概率选择第一个算子为新增的alpha_pool
             if random_state.randint(1, round(1/p)+1) == 1:
                 function = random_state.randint(len(self.init_function_set))
@@ -215,7 +215,7 @@ class _Program(object):
                         current_window = random_state.randint(function.RandRange[0], function.RandRange[1])
                     else:
                         current_window = random_state.choice(function.RandRange)
-        
+
                     function.baseConst = current_window
         else:
             function = random_state.randint(len(self.function_set))
@@ -225,9 +225,9 @@ class _Program(object):
                     current_window = random_state.randint(function.RandRange[0], function.RandRange[1])
                 else:
                     current_window = random_state.choice(function.RandRange)
-    
+
                 function.baseConst = current_window
-                
+
         program = [function]
         # 增加该算子需要的参数值
         terminal_stack = [function.arity]
@@ -277,7 +277,7 @@ class _Program(object):
                             terminal_stack[-1] += 1
                         else:
                             terminal_value_stack.append(function)
-                    
+
                     while terminal_stack[-1] == 0:
                         terminal_value_stack = []
                         terminal_stack.pop()
@@ -315,7 +315,7 @@ class _Program(object):
                 terminal_stack[-1] -= 1
                 if terminal_stack[-1]>0:
                     terminal_value_stack.append(terminal)
-                    
+
                 # while terminal_stack[-1] == 0: modify to <=0, when function is fixed_param function, the terminal_stack[-1] will be -1
                 while terminal_stack[-1] == 0:
                     terminal_value_stack = []
@@ -330,7 +330,7 @@ class _Program(object):
 
     def validate_program(self):
         """Rough check that the embedded program in the object is valid."""
-        terminals = [0]            
+        terminals = [0]
         for node in self.program:
             if isinstance(node, _Function) and node.need_param is None: # new add node.need_param is None
                 terminals.append(node.arity)
@@ -375,7 +375,7 @@ class _Program(object):
                 else:
                     output += '%.3f' % node
                 terminals[-1] -= 1
-        
+
                 if len(RandomFunctionStack)>0:
                     RandomFunctionStack[-1].arity -= 1
                     if RandomFunctionStack[-1].isRandom and RandomFunctionStack[-1].arity==0:
@@ -383,11 +383,11 @@ class _Program(object):
                 while terminals[-1] == 0:
                     RandomFunctionStack.pop()
                     terminals.pop()
-        
+
                     terminals[-1] -= 1
                     if len(RandomFunctionStack)>0:
                         RandomFunctionStack[-1].arity -= 1
-        
+
                         output += ')'
                         if len(RandomFunctionStack)>0 and RandomFunctionStack[-1].isRandom and RandomFunctionStack[-1].arity==0:
                             output += ',' + str( RandomFunctionStack[-1].baseConst)
@@ -583,13 +583,13 @@ class _Program(object):
                     # print(0, terminals)
                 # alpha_pool
                 elif (function.need_param is not None) and (function.name.startswith('alpha_pool')):
-                    
+
                     terminals = [np.tile(t, (X.shape[0],X.shape[2])) if isinstance(t, float)
                 else X[:,t,:] if isinstance(t, int)
                     else t for t in apply_stack[-1][1:]]
                     terminals.append(X[:, list(self.feature_names).index(function.need_param[0]), :])
                     # print(1, terminals)
-                    
+
                 else:
                     terminals = [np.tile(t, (X.shape[0],X.shape[2])) if isinstance(t, float)
                 else X[:,t,:] if isinstance(t, int)

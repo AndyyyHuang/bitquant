@@ -1,15 +1,16 @@
 import pandas as pd
 from pathlib import Path
-from bitquant.data_stream.data_client import DataClient
-from bitquant.signal_generation.factor_calculator import FactorCalculator, function_map
-from bitquant.signal_generation.factor_selector import FactorSelector
-from bitquant.signal_generation.factor_scaler import FactorScaler
-from bitquant.signal_generation.factor_aggregator import FactorAggregatorIC
+# TODO: take dataclient out of qunatlib
+# from bitquant.data_stream.data_client import DataClient
+from bitquant.quantlib.signal_generation.factor_calculator import FactorCalculator, function_map
+from bitquant.quantlib.signal_generation.factor_selector import FactorSelector
+from bitquant.quantlib.signal_generation.factor_scaler import FactorScaler
+from bitquant.quantlib.signal_generation.factor_aggregator import FactorAggregatorIC
 
 def test():
     factor_lis = ["ts_midpoint(ts_natr(high,low,close,7),14)", "ts_delta(dynamic_ts_max(ts_bbands(close,20),28),7)", "ts_midpoint(ts_ht_trendmode(close),21)"]
     # data = DataClient.start() # unfinished
-    fp = Path(__file__).parent.parent / "data_stream/local_data/binanceusdm_4h_processed_kline.parquet"
+    fp = Path(__file__).parent.parent.parent / "data/local_data/binanceusdm_4h_processed_kline.parquet"
     data = pd.read_parquet(fp)
 
     calculator = FactorCalculator(data, factor_lis, function_map, different_axis=['ts', 'symbol', 'return_1'])
