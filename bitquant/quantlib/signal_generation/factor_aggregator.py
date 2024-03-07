@@ -21,7 +21,7 @@ class FactorAggregatorIC:
     def predict(self, rolling_type="avg", ic_type='pearson'):
         self.average_IC_combination(ic_type=ic_type)
         self.calculate_score(rolling_window=self.training_window, rolling_type=rolling_type)
-        prediction = self.score_df.iloc[-1]
+        prediction = np.array(self.score_df.iloc[-1])
         return prediction
 
 

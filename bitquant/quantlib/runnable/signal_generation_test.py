@@ -16,11 +16,14 @@ def test():
     calculator = FactorCalculator(data, factor_lis, function_map, different_axis=['ts', 'symbol', 'return_1'])
     factor_df = calculator.calculate_factor()
 
-    selector = FactorSelector(factor_df)
-    filtered_factor_lis = selector.filter_out_high_corr_factor(threshold=0.6, greater_is_better=False)
+    scaled_factor_df = FactorScaler(factor_df=factor_df, factor_lis=factor_lis, scaling_window=180,
+                                    orthogonalize=False,
+                                    orthogonal_method='symmetry', ts_normalize=True,
+                                    cross_section_normalize=False).scale_data()
 
-    scaled_factor_df = FactorScaler(factor_df=factor_df, factor_lis=filtered_factor_lis, scaling_window=180, orthogonalize=False,
-                    orthogonal_method='symmetry', ts_normalize=True, cross_section_normalize=False).scale_data()
+    selector = FactorSelector(scaled_factor_df)
+    filtered_factor_lis = selector.filter_out_high_corr_factor(threshold=0.6, greater_is_better=False)
+    scaled_factor_df = scaled_factor_df.loc[:, filtered_factor_lis]
 
     target = data.loc[scaled_factor_df.index, 'return_1']
 
