@@ -37,9 +37,6 @@ def _start_loop(portfolio_weight_matrix, trade_price_matrix, init_asset_value, t
 
 
 class Evaluator:
-    def __init__(self) -> None:
-        pass
-
     def evaluate(self, portfolio_weight_matrix: np.array, price_matrix: np.array, init_asset_value: float, taker_fee: float, volume_precision: np.array, min_notional: np.array):
         open_price_matrix = price_matrix[:, :, 0]
         low_price_matrix = price_matrix[:, :, 1]

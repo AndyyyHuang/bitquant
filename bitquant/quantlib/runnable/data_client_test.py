@@ -10,4 +10,5 @@ if __name__ == "__main__":
     data_client = DataClient(exchange_name="BINANCE")
     symbol_info = data_client.exchange.get_symbol_info()
     aggregated_klines = data_client.exchange.get_aggregated_symbols_kline(symbol_lis, interval, st, et)
-    print(symbol_info, aggregated_klines)
+    data = data_client.process_aggregated_symbols_kline(aggregated_klines)
+    print(symbol_info, data)

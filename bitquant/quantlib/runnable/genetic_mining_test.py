@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
+from datetime import datetime
+from bitquant.data.data_client import DataClient
 from bitquant.quantlib.factor_mining.genetic_programming.genetic import SymbolicTransformer
 from bitquant.quantlib.factor_mining.genetic_programming.functions import *
 from bitquant.quantlib.factor_mining.genetic_programming.functions import _function_map
@@ -22,11 +24,14 @@ def preprocess_data(bar, st="2023-06-01", et="2025-01-01"):
 
 if __name__ == "__main__":
 
-    aggregated_kline_fp = Path(__file__).resolve().parent.parent.parent / "data/local_data/binanceusdm_4h_aggregated_kline.parquet"
-    processed_kline_fp = Path(__file__).resolve().parent.parent.parent / "data/local_data/binanceusdm_4h_processed_kline.parquet"
-    data = pd.read_parquet(aggregated_kline_fp)
-    data = preprocess_data(data, st="2023-06-01", et="2025-01-01")
-    data.to_parquet(processed_kline_fp)
+
+    symbol_lis = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
+    interval = "1h"
+    st = "2024-01-01 00:00:00"
+    et = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    data_client = DataClient(exchange_name="BINANCE")
+    aggregated_kline = data_client.get_aggregated_symbols_kline(symbol_lis=symbol_lis, interval=interval, st=st, et=et)
+    data = data_client.process_aggregated_symbols_kline(aggregated_kline)
 
     different_axis = ['ts', 'symbol', 'return_1']
     X, Y, feature_names = make_XY(data, *different_axis)

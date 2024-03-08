@@ -25,7 +25,7 @@ import bittensor as bt
 import bitquant
 
 # bitquant module:
-
+from bitquant.data.data_client import DataClient
 from bitquant.quantlib.strategy_engine import StrategyEngine
 from bitquant.quantlib.signal_generation.factor_calculator import FactorCalculator, function_map
 from bitquant.quantlib.signal_generation.factor_selector import FactorSelector
@@ -56,8 +56,6 @@ class Miner(BaseMinerNeuron):
         super(Miner, self).__init__(config=config)
 
         # TODO(developer): Anything specific to your use case you can do here
-
-
 
 
     async def forward(

@@ -7,7 +7,6 @@ exchange_map = {
     "BINANCE": BinanceExchange
 }
 
-
 class DataClient:
     def __init__(self, exchange_name):
         self.exchange = exchange_map[exchange_name]()
@@ -24,4 +23,12 @@ class DataClient:
         aggregated_klines = self.exchange.get_aggregated_symbols_kline(symbol_lis, interval, st, et)
         return aggregated_klines
 
-
+    def process_aggregated_symbols_kline(self, aggregated_klines):
+        """
+        Calculate target and filter out the symbols with nan value
+        """
+        aggregated_klines['return_1'] = (aggregated_klines['close'].unstack().diff(1).shift(-1) / aggregated_klines['close'].unstack()).stack()
+        symbols_with_complete_data = aggregated_klines["close"].unstack().isna().sum(axis=0)[
+            aggregated_klines["close"].unstack().isna().sum(axis=0) == 0].index.tolist()
+        aggregated_klines = aggregated_klines.loc[(slice(None), symbols_with_complete_data), :]
+        return aggregated_klines

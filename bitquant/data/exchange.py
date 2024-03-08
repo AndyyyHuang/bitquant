@@ -171,9 +171,3 @@ class BinanceExchange(BaseExchange):
         ]
         return pd.DataFrame(data)
 
-if __name__ == "__main__":
-    binance = BinanceExchange()
-    info = binance.get_symbol_info()
-    # klines = asyncio.run(binance.get_binance_kline(["BTCUSDT", "ETHUSDT"], st="2023-01-01 00:00:00", et="2024-01-01 00:00:00"))
-    aggregated_kline = binance.get_aggregated_symbols_kline(["BTCUSDT", "ETHUSDT"], interval="1h", st="2023-01-01 00:00:00", et="2024-01-01 00:00:00")
-    print(aggregated_kline, info)

@@ -1,7 +1,4 @@
 import pandas as pd
-from datetime import datetime, timedelta
-import logging
-from loguru import logger as logu
 from datetime import datetime, timedelta, timezone
 
 class TimeManager:
@@ -71,37 +68,3 @@ def preprocess_data(bar, st="2023-06-01", et="2025-01-01"):
     return bar
 
 
-def get_delta_time(s: str) -> datetime:
-    # Extract the number and the time unit from the string
-    num = int(s[:-1])
-    unit = s[-1]
-
-    # Convert the string into a timedelta object
-    if unit == 'h':  # hours
-        delta = timedelta(hours=num)
-    elif unit == 'm':  # minutes
-        delta = timedelta(minutes=num)
-    elif unit == 's':  # seconds
-        delta = timedelta(seconds=num)
-    elif unit == 'd':  # days
-        delta = timedelta(days=num)
-    else:
-        raise ValueError(f"Unknown time unit: {unit}")
-
-    # Add the timedelta to the current timestamp
-    return delta
-
-
-def my_logger(log_type,filename=None):
-    if log_type=="console":
-        logger = logging.getLogger('influxdb_save')
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        # 创建一个handler，用于输出控制台，并且设定严重级别
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-        ch.setFormatter(formatter)
-        logger.addHandler(ch)
-    else:
-        logu.add(filename, retention='30 days')
-        logger=logu
-    return logger
