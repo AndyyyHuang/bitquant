@@ -57,6 +57,18 @@ class Miner(BaseMinerNeuron):
 
         # TODO(developer): Anything specific to your use case you can do here
 
+        factor_lis = ["ts_midpoint(ts_natr(high,low,close,7),14)", "ts_delta(dynamic_ts_max(ts_bbands(close,20),28),7)",
+                      "ts_midpoint(ts_ht_trendmode(close),21)"]
+
+        factor_calculator = FactorCalculator(function_map, different_axis=['ts', 'symbol', 'return_1'])
+        factor_scaler = FactorScaler(scaling_window=180, orthogonalize=False, orthogonal_method='symmetry',
+                                     ts_normalize=True, cross_section_normalize=False)
+        factor_selector = FactorSelector()
+        factor_aggregator = FactorAggregatorIC(training_window=90, rolling_type="avg", ic_type='pearson')
+
+        self.strategy_engine = StrategyEngine(init_factor_lis=factor_lis, factor_calculator=factor_calculator,
+                                         factor_scaler=factor_scaler, factor_selector=factor_selector,
+                                         factor_aggregator=factor_aggregator)
 
     async def forward(
         self, synapse: bitquant.protocol.Dummy
@@ -75,6 +87,12 @@ class Miner(BaseMinerNeuron):
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
         # TODO(developer): Replace with actual implementation logic.
+        bt.logging.info("received request...", synapse)
+
+        synapse.dummy_input
+
+
+
         synapse.dummy_output = synapse.dummy_input * 2
         return synapse
 

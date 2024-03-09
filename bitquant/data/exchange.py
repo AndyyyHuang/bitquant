@@ -133,7 +133,6 @@ class BinanceExchange(BaseExchange):
         et = btc.index[-1]
 
         ts_lis = btc.index.tolist()
-        symbol_lis = list(klines.keys())
         col = btc.columns.tolist() + ['vwap']
 
         multi_idx = pd.MultiIndex.from_product([ts_lis, symbol_lis], names=["ts", "symbol"])
