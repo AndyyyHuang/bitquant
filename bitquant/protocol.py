@@ -5,18 +5,22 @@ from starlette.responses import StreamingResponse
 
 from bitquant.base.pair import Pair
 
+# TODO unsure of these basemodels
+class MinerEvaluationWindow(BaseModel):
+    start: int
+    end: int
+
 class Portfolio(BaseModel):
     holdings: Dict[Pair, float]
 
 class Trade(BaseModel):
     pair: Pair
-    time: int # TODO idk about this
+    time: int
 
-# TODO not sure if possible to pass pydantic objects through. Otherwise it'll have to be a string and parsed in process_streaming_resp
 class StreamingTradeHistory(bt.StreamingSynapse):
 
-    portfolio_start: Portfolio = Field(...)
-
+    miner_window: MinerEvaluationWindow = Field(...)
+    portfolio_start: Portfolio = Field(None)
     trade_history: List[Trade] = Field(default_factory=list())
 
 

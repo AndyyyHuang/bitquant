@@ -32,12 +32,8 @@ from template.mock import MockSubtensor, MockMetagraph
 # TODO cleanup
 class BaseNeuron(ABC):
     """
-    Base class for Bittensor miners. This class is abstract and should be inherited by a subclass. It contains the core logic for all neurons; validators and miners.
-
-    In addition to creating a wallet, subtensor, and metagraph, this class also handles the synchronization of the network state via a basic checkpointing mechanism based on epoch length.
+    BaseNeuron class that contains shared logic for all neurons (miner or validator)
     """
-
-    neuron_type: str = "BaseNeuron"
 
     @classmethod
     def check_config(cls, config: "bt.Config"):
@@ -61,25 +57,36 @@ class BaseNeuron(ABC):
         return ttl_get_block(self)
 
     def __init__(self, config=None):
+        # Set up logging with the provided configuration and directory.
         base_config = copy.deepcopy(config or BaseNeuron.config())
         self.config = self.config()
         self.config.merge(base_config)
         self.check_config(self.config)
-
-        # Set up logging with the provided configuration and directory.
         bt.logging(config=self.config, logging_dir=self.config.full_path)
-
-        # If a gpu is required, set the device to cuda:N (e.g. cuda:0)
-        self.device = self.config.neuron.device
 
         # Log the configuration for reference.
         bt.logging.info(self.config)
 
         # Build Bittensor objects
-        # These are core Bittensor classes to interact with the network.
         bt.logging.info("Setting up bittensor objects.")
+        self.wallet = bt.wallet(config=self.config)
+        bt.logging.info(f"Wallet: {self.wallet}")
+        self.subtensor = bt.subtensor(config=self.config)
+        bt.logging.info(f"Subtensor: {self.subtensor}")
+        self.metagraph = self.subtensor.metagraph(self.config.netuid)
+        bt.logging.info(f"Metagraph: {self.metagraph}")
 
-        # The wallet holds the cryptographic key pairs for the miner.
+        self.check_registered()
+
+        # Each neuron gets a unique identity (UID) in the network for differentiation.
+        self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+
+        bt.logging.info(
+            f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
+        )
+        self.step = 0
+
+        '''
         if self.config.mock:
             self.wallet = bt.MockWallet(config=self.config)
             self.subtensor = MockSubtensor(
@@ -92,22 +99,7 @@ class BaseNeuron(ABC):
             self.wallet = bt.wallet(config=self.config)
             self.subtensor = bt.subtensor(config=self.config)
             self.metagraph = self.subtensor.metagraph(self.config.netuid)
-
-        bt.logging.info(f"Wallet: {self.wallet}")
-        bt.logging.info(f"Subtensor: {self.subtensor}")
-        bt.logging.info(f"Metagraph: {self.metagraph}")
-
-        # Check if the miner is registered on the Bittensor network before proceeding further.
-        self.check_registered()
-
-        # Each miner gets a unique identity (UID) in the network for differentiation.
-        self.uid = self.metagraph.hotkeys.index(
-            self.wallet.hotkey.ss58_address
-        )
-        bt.logging.info(
-            f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
-        )
-        self.step = 0
+        '''
 
     @abstractmethod
     async def forward(self, synapse: bt.Synapse) -> bt.Synapse:
@@ -133,17 +125,23 @@ class BaseNeuron(ABC):
         # Always save state.
         self.save_state()
 
+    # TODO are these two checks duplicated?
     def check_registered(self):
-        # --- Check for registration.
-        if not self.subtensor.is_hotkey_registered(
-            netuid=self.config.netuid,
-            hotkey_ss58=self.wallet.hotkey.ss58_address,
-        ):
+        # TODO better error messages
+        # check if wallet is registered
+        if self.wallet.hotkey.ss58_address not in self.metagraph.hotkeys:
             bt.logging.error(
-                f"Wallet: {self.wallet} is not registered on netuid {self.config.netuid}."
-                f" Please register the hotkey using `btcli subnets register` before trying again"
+                f"\nYour wallet: {self.wallet} if not registered to chain connection: {self.subtensor} \nRun btcli register and try again. "
             )
-            exit()
+            raise RuntimeError("wallet is not registered, try running btcli register")
+
+        # check if wallet is registered in subnet
+        if not self.subtensor.is_hotkey_registered(netuid=self.config.netuid, hotkey_ss58=self.wallet.hotkey.ss58_address):
+            bt.logging.error(
+                f"Wallet: {self.wallet} is not registered on netuid {self.config.netuid}"
+                f"Please register the hotkey using `btcli subnets register` before trying again"
+            )
+            raise RuntimeError(f"wallet is not registered to subnet={self.config.netuid}, try running btcli subnets register")
 
     def should_sync_metagraph(self):
         """
@@ -152,22 +150,6 @@ class BaseNeuron(ABC):
         return (
             self.block - self.metagraph.last_update[self.uid]
         ) > self.config.neuron.epoch_length
-
-    def should_set_weights(self) -> bool:
-        # Don't set weights on initialization.
-        if self.step == 0:
-            return False
-
-        # Check if enough epoch blocks have elapsed since the last epoch.
-        if self.config.neuron.disable_set_weights:
-            return False
-
-        # Define appropriate logic for when set weights.
-        return (
-            (self.block - self.metagraph.last_update[self.uid])
-            > self.config.neuron.epoch_length
-            and self.neuron_type != "MinerNeuron"
-        )  # don't set weights if you're a miner
 
     def save_state(self):
         bt.logging.warning(
