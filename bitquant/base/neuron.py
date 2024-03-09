@@ -176,6 +176,30 @@ class BaseNeuron(ABC):
             self.is_running = False
             bt.logging.debug("Stopped")
 
+    def __enter__(self):
+        self.run_in_background_thread()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Stops the neuron's background operations upon exiting the context.
+        This method facilitates the use of the neuron in a 'with' statement.
+
+        Args:
+            exc_type: The type of the exception that caused the context to be exited.
+                      None if the context was exited without an exception.
+            exc_value: The instance of the exception that caused the context to be exited.
+                       None if the context was exited without an exception.
+            traceback: A traceback object encoding the stack trace.
+                       None if the context was exited without an exception.
+        """
+        if self.is_running:
+            bt.logging.debug(f"Stopping {self.__name__} in background thread.")
+            self.should_exit = True
+            self.thread.join(5)
+            self.is_running = False
+            bt.logging.debug("Stopped")
+
     def save_state(self):
         bt.logging.warning(
             "save_state() not implemented for this neuron. You can implement this function to save model checkpoints or other useful data."

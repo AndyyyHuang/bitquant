@@ -22,6 +22,7 @@ import argparse
 import bittensor as bt
 from loguru import logger
 from bitquant.base.miner import QuantMiner
+from bitquant.base.validator import QuantValidator
 
 
 def check_config(cls, config: "bt.Config"):

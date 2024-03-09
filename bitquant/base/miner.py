@@ -81,29 +81,6 @@ class QuantMiner(BaseNeuron):
         portfolio_streamer = partial(_stream, start_time, end_time)
         return synapse.create_streaming_response(portfolio_streamer)
 
-    def run_in_background_thread(self):
-        """
-        Starts the miner's operations in a separate background thread.
-        This is useful for non-blocking operations.
-        """
-        if not self.is_running:
-            bt.logging.debug("Starting miner in background thread.")
-            self.should_exit = False
-            self.thread = threading.Thread(target=self.run, daemon=True)
-            self.thread.start()
-            self.is_running = True
-            bt.logging.debug("Started")
-
-    def stop_run_thread(self):
-        """
-        Stops the miner's operations that are running in the background thread.
-        """
-        if self.is_running:
-            bt.logging.debug("Stopping miner in background thread.")
-            self.should_exit = True
-            self.thread.join(5)
-            self.is_running = False
-            bt.logging.debug("Stopped")
 
     def run(self):
         """
