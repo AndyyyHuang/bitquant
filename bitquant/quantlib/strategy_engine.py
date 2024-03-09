@@ -9,8 +9,8 @@ class StrategyEngine:
     Example: Let's say you have 100USDT. The symbol list is ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT"], your output is [0.5, -0.2, -0.3, 0].
     Then your investing portfolio is that long 50USDT BTCUSDT, short 20USDT ETHUSDT, short 30 USDT SOLUSDT
     """
-    def __init__(self, data, init_factor_lis=None, factor_calculator=None, factor_scaler=None, factor_selector=None, factor_aggregator=None):
-        self.data = data
+    def __init__(self, init_factor_lis=None, factor_calculator=None, factor_scaler=None, factor_selector=None, factor_aggregator=None):
+
         self.init_factor_lis = init_factor_lis
         self.factor_calculator = factor_calculator
         self.factor_scaler = factor_scaler
@@ -20,21 +20,21 @@ class StrategyEngine:
     def check_delta_neutral(self, portfolio_weight):
         return np.abs(np.sum(portfolio_weight)) < 1e-6
 
-    def get_score(self):
+    def get_score(self, data):
 
-        factor_df = self.factor_calculator.calculate_factor(self.data, self.init_factor_lis)
+        factor_df = self.factor_calculator.calculate_factor(data, self.init_factor_lis)
         scaled_factor_df = self.factor_scaler.scale_data(factor_df, self.init_factor_lis)
         filtered_factor_lis = self.factor_selector.filter_out_high_corr_factor(factor_df=scaled_factor_df, threshold=0.6,
                                                                           greater_is_better=False)
         scaled_factor_df = scaled_factor_df.loc[:, filtered_factor_lis]
-        target = self.data.loc[scaled_factor_df.index, 'return_1']
+        target = data.loc[scaled_factor_df.index, 'return_1']
         self.factor_aggregator.train()
         scores = self.factor_aggregator.predict(scaled_factor_df=scaled_factor_df, target=target)
         return scores
 
-    def run(self):
+    def run(self, data):
         # Get scores series
-        scores = self.get_score()
+        scores = self.get_score(data)
         # Construct hedge portfolio based on the scores we get from our multi-factor model
 
         # The most simple way is normalizing scores to have a sum of 0

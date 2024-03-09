@@ -9,7 +9,7 @@ from bitquant.quantlib.signal_generation.factor_aggregator import FactorAggregat
 
 def test():
 
-    symbol_lis = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
+    symbol_lis = ["ETHUSDT", "BTCUSDT", "BNBUSDT", "SOLUSDT"]
     interval = "1h"
     st = "2024-01-01 00:00:00"
     et = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -25,9 +25,9 @@ def test():
     factor_selector = FactorSelector()
     factor_aggregator = FactorAggregatorIC(training_window=90, rolling_type="avg", ic_type='pearson')
 
-    strategy_engine = StrategyEngine(data=data, init_factor_lis=factor_lis, factor_calculator=factor_calculator,
+    strategy_engine = StrategyEngine(init_factor_lis=factor_lis, factor_calculator=factor_calculator,
                                      factor_scaler=factor_scaler, factor_selector=factor_selector, factor_aggregator=factor_aggregator)
-    portfolio_weight = strategy_engine.run()
+    portfolio_weight = strategy_engine.run(data=data)
     print(portfolio_weight)
 
 if __name__ == "__main__":
