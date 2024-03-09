@@ -30,7 +30,9 @@ from traceback import print_exception
 
 from template.base.neuron import BaseNeuron
 from template.mock import MockDendrite
-from template.utils.config import add_validator_args
+
+class QuantValidator(BaseNeuron):
+    ...
 
 
 class BaseValidatorNeuron(BaseNeuron):

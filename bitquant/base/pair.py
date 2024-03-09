@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+# TODO maybe pair should be something else idk
 class Pair(BaseModel):
     base: str
     quote: str
