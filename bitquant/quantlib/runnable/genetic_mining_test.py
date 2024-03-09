@@ -4,8 +4,8 @@ from pathlib import Path
 from datetime import datetime
 from bitquant.data.data_client import DataClient
 from bitquant.quantlib.factor_mining.genetic_programming.genetic import SymbolicTransformer
-from bitquant.quantlib.factor_mining.genetic_programming.functions import *
-from bitquant.quantlib.factor_mining.genetic_programming.functions import _function_map
+from bitquant.quantlib.functions.functions import *
+from bitquant.quantlib.functions.functions import _function_map
 from bitquant.quantlib.factor_mining.genetic_programming.utils import make_XY
 
 def preprocess_data(bar, st="2023-06-01", et="2025-01-01"):

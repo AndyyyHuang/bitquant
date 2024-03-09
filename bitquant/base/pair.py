@@ -6,3 +6,5 @@ class Pair(BaseModel):
     quote: str
 
 # TODO should define all pairs acceptable by miners and validators
+
+

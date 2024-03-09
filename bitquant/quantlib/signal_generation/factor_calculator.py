@@ -1,5 +1,5 @@
-from bitquant.quantlib.factor_mining.genetic_programming.functions import _function_map as function_map
-from bitquant.quantlib.factor_mining.genetic_programming.functions import *
+from bitquant.quantlib.functions.functions import _function_map as function_map
+from bitquant.quantlib.functions.functions import *
 from bitquant.quantlib.factor_mining.genetic_programming.utils import make_XY
 import pandas as pd
 import re

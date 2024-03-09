@@ -28,7 +28,7 @@ from bitquant.quantlib.factor_mining.genetic_programming.utils import _syntax_ad
 from bitquant.quantlib.factor_mining.genetic_programming._program import _Program
 from bitquant.quantlib.factor_mining.genetic_programming.fitness import _fitness_map, _Fitness, _extra_map, _weighted_pearson_3D, _weighted_Information_Ratio_3D
 import re
-from bitquant.quantlib.factor_mining.genetic_programming.functions import _function_map, _Function, sig1 as sigmoid
+from bitquant.quantlib.functions.functions import _function_map, _Function, sig1 as sigmoid
 
 # 对字典进行合并
 all_cal_dictionary = dict(list(_function_map.items()))
