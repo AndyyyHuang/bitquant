@@ -17,6 +17,7 @@
 
 import copy
 import typing
+import threading
 
 import bittensor as bt
 
@@ -150,6 +151,30 @@ class BaseNeuron(ABC):
         return (
             self.block - self.metagraph.last_update[self.uid]
         ) > self.config.neuron.epoch_length
+
+    def run_in_background_thread(self):
+        """
+        Starts the neuron's operations in a separate background thread.
+        This is useful for non-blocking operations.
+        """
+        if not self.is_running:
+            bt.logging.debug(f"Starting {self.__name__} in background thread.")
+            self.should_exit = False
+            self.thread = threading.Thread(target=self.run, daemon=True)
+            self.thread.start()
+            self.is_running = True
+            bt.logging.debug("Started")
+
+    def stop_run_thread(self):
+        """
+        Stops the neuron's operations that are running in the background thread.
+        """
+        if self.is_running:
+            bt.logging.debug(f"Stopping {self.__name__} in background thread.")
+            self.should_exit = True
+            self.thread.join(5)
+            self.is_running = False
+            bt.logging.debug("Stopped")
 
     def save_state(self):
         bt.logging.warning(
