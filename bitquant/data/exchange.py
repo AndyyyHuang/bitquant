@@ -1,4 +1,5 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
+from typing import List, Callable, Dict, Any, Union
 
 import pandas as pd
 import numpy as np
@@ -6,7 +7,7 @@ import requests
 import asyncio
 import aiohttp
 import traceback
-from bitquant.data.utils import TimeManager
+from bitquant.data.utils import TimeUtils
 
 
 # https://api.mexc.com/api/v3/klines?symbol=FORTHUSDT&interval=60m&limit=3
@@ -18,40 +19,68 @@ from bitquant.data.utils import TimeManager
 # logic: descending order an discard the first data
 
 
-class BaseExchange:
-    def __init__(self, name, base_url, info_endpoint, klines_endpoint, limit_per_second):
-        self.base_url = base_url
-        self.name = name
-        self.info_endpoint = info_endpoint
-        self.klines_endpoint = klines_endpoint
-        self.max_request_per_second = limit_per_second
+class BaseAPIHandler(ABC):
+    base_url: str
+    limit_per_second: int
 
+    @classmethod
+    def get_json(cls, endpoint: str, params:Dict[str, Any] = {}):
+        url = cls.base_url + endpoint
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f"error {e=} for {url=} for {params=} for {cls.__name__}")
+            return None
+        except Exception as e:
+            print(f"error {e=} for {url=} for {params=} for {cls.__name__}")
+            return None
+        # should maybe also check for code inside response here
+        # if (ret := response.json())['status_code']
+            # return None
+
+        return response.json()
+
+    @classmethod
+    async def async_get_json(cls, session:aiohttp.ClientSession, url, param):
+        async with session.get(url, params=param, timeout=10) as response:
+            response.raise_for_status()
+            data = await response.json()
+            return data
+
+    @classmethod
+    async def batch_get_json(cls, endpoint:str, params:List[Dict[str, Any]] = []):
+        url = cls.base_url + endpoint
+        # timeout = aiohttp.ClientTimeout(total=15) # use limit_per_second??
+        async with aiohttp.ClientSession() as session:
+            # tasks = [asyncio.ensure_future(cls.async_get_json(session=session, url=url, param=param) for param in params)]
+            tasks = [cls.async_get_json(session=session, url=url, param=param) for param in params]
+            all_responses = await asyncio.gather(*tasks)
+        return all_responses
+
+    @classmethod
     @abstractmethod
-    def get_exchange_info(self, filters: list = None):
+    def get_exchange_info(cls, filters: list = None):
         pass
 
+    @classmethod
     @abstractmethod
-    async def fetch_klines_by_symbol(self, symbol, interval, st, et):
+    async def get_klines(cls, symbol, interval, st, et):
         pass
 
 
-class BinanceExchange(BaseExchange):
-    def __init__(self):
-        super().__init__(
-            name="BINANCE",
-            base_url="https://fapi.binance.com",
-            info_endpoint="/fapi/v1/exchangeInfo",
-            klines_endpoint="/fapi/v1/continuousKlines",  # ascending
-            limit_per_second=int(20000 / 60 / 5),
-        )
-        self.info_url = self.base_url + self.info_endpoint
-        self.klines_url = self.base_url + self.klines_endpoint
+class BinanceExchange(BaseAPIHandler):
+    base_url="https://fapi.binance.com"
+    limit_per_second=int(20000 / 60 / 5)
 
+    @classmethod
+    def get_exchange_info(cls) -> Dict:
+        return cls.get_json(endpoint="/fapi/v1/exchangeInfo")
 
-    def get_exchange_info(self, filters: list = None):
-        response = requests.get(self.info_url)
-        data = response.json()
-        """
+    @classmethod
+    def get_symbol_info(cls):
         data = [
             {
                 "symbol": each["symbol"],
@@ -59,114 +88,49 @@ class BinanceExchange(BaseExchange):
                 "status": each["status"],
                 "tickSize": each["filters"][0]["tickSize"],
                 "notional": each["filters"][5]["notional"]
-            } for each in response.json()["symbols"]
+            } for each in cls.get_exchange_info()["symbols"]
         ]
-        """
         return data
 
-    async def fetch_klines_by_symbol(self, symbol, interval, st, et):
+    @classmethod
+    def get_klines(cls, params:List[Dict[str,Any]]=None, asynchonous_batch=True):
+        '''
+        Return:
+            List[all_symbols_list[kline_data_list]]
+            kline_data_list is ascending
+        '''
+        endpoint = "/fapi/v1/continuousKlines"
+        if asynchonous_batch:
+            return asyncio.run(cls.batch_get_json(endpoint=endpoint, params=params))
+        else:
+            return [cls.get_json(endpoint, param) for param in params]
 
-        st_in_ms = TimeManager.dt_str_to_ms(st, format="%Y-%m-%d %H:%M:%S")
-        et_in_ms = TimeManager.dt_str_to_ms(et, format="%Y-%m-%d %H:%M:%S")
-        interval_in_ms = TimeManager.interval_str_to_ms(interval)
-        data_lis = []
-        async with aiohttp.ClientSession() as session:
-            while True:
-                params = {
-                    "pair": symbol,
-                    "contractType": "PERPETUAL",
-                    "interval": interval,
-                    "startTime": st_in_ms,
-                    "endTime": et_in_ms,
-                    "limit": 1000,
-                }
+    @classmethod
+    def get_klines_by_symbol(cls, symbols: List[str], interval: str, st: str, et: str):
+        # build params
+        limit = 1500
+        st_in_ms = TimeUtils.dt_str_to_ms(st, format="%Y-%m-%d %H:%M:%S")
+        et_in_ms = TimeUtils.dt_str_to_ms(et, format="%Y-%m-%d %H:%M:%S")
+        interval_in_ms = TimeUtils.interval_str_to_ms(interval)
 
-                try:
-                    async with session.get(self.klines_url, params=params) as response:
-                        data = await response.json()
-                        # Check if the response is rate limited
-                        if response.status != 200:
-                            wait_time = 2
-                            print(
-                                f"Error Status: {response.status}, Error Msg: {data['msg']}."
-                            )
-                            await asyncio.sleep(wait_time)
+        # TODO need tests
+        # TODO check if it's including or excluding for et_
+        # create params for each symbol and for every request interval
+        params = [{
+            "pair": symbol,
+            "contractType": "PERPETUAL",
+            "interval": interval,
+            "startTime": st_,
+            "endTime": et_in_ms,
+            "limit": 1000
+        } for symbol in symbols for st_ in range(st_in_ms, et_in_ms, interval_in_ms*limit)]
 
-                        if len(data) > 0:
-                            st_in_ms = data[-1][0] + interval_in_ms
-                            data_lis.extend(data)
-                        else:
-                            break
+        # create dictionary using pair name and klines
+        ret = {p['pair']:k for p,k in zip(params, cls.get_klines(params))}
+        return ret
 
-                        if st_in_ms >= et_in_ms:
-                            break
 
-                except Exception as e:
-                    print(f"Error processing binance data {e}")
-                    traceback.print_exc()
-
-        return data_lis
-
-    async def get_klines(self, symbol_lis: list, interval: str, st: str, et: str) -> dict:
-        tasks = [
-            self.fetch_klines_by_symbol(symbol=symbol, interval=interval, st=st, et=et)
-            for symbol in symbol_lis
-        ]
-        results = await asyncio.gather(*tasks)
-
-        klines = {}
-        for i, res in enumerate(results):
-            kl_df = pd.DataFrame(res, columns=["ots", "open", "high", "low", "close", "volume", "ts",
-                                                     "usd_v", "n_trades", "taker_buy_v", "taker_buy_usd", "ig"]).drop(["ots", "ig"], axis=1)
-            kl_df['ts'] = kl_df['ts'] + 1
-            kl_df['ts'] = kl_df['ts'].apply(TimeManager.ms_to_timestamp)
-            kl_df.set_index("ts", inplace=True)
-            klines[symbol_lis[i]] = kl_df
-
-        return klines
-
-    def get_aggregated_symbols_kline(self, symbol_lis: list, interval: str, st: str, et: str) -> pd.DataFrame:
-
-        klines = asyncio.run(self.get_klines(symbol_lis, interval, st, et))
-        btc = klines["BTCUSDT"]
-        st = btc.index[0]
-        et = btc.index[-1]
-
-        ts_lis = btc.index.tolist()
-        col = btc.columns.tolist() + ['vwap']
-
-        multi_idx = pd.MultiIndex.from_product([ts_lis, symbol_lis], names=["ts", "symbol"])
-        data = np.full(shape=(len(ts_lis), len(symbol_lis), len(col)), fill_value=np.nan)
-
-        wrong_symbol = []
-        for symbol, kline in klines.items():
-            indice = symbol_lis.index(symbol)
-            try:
-                kline = kline.loc[(kline.index >= st) & (kline.index <= et)]
-                kline = kline.apply(pd.to_numeric)
-                kline['vwap'] = (kline['usd_v'] / kline['volume']).ffill().bfill()  # volume可能为0而导致nan，填充即可
-                st_idx = ts_lis.index(kline.index[0])
-                ed_idx = ts_lis.index(kline.index[-1])
-                data[st_idx:ed_idx + 1, indice, :] = kline.values
-            except:
-                wrong_symbol.append(symbol)
-
-        df = pd.DataFrame(data.reshape(-1, data.shape[-1]), index=multi_idx, columns=col)
-        symbol_lis = list(set(symbol_lis).difference(set(wrong_symbol)))
-        df = df.loc[(slice(None), symbol_lis), :]
-        return df
-
-    def get_symbol_info(self) -> pd.DataFrame:
-
-        info = self.get_exchange_info()
-        data = [
-            {
-                "symbol": each["symbol"],
-                "contractType": each["contractType"],
-                "status": each["status"],
-                "tickSize": each["filters"][0]["tickSize"],
-                "notional": each["filters"][5]["notional"]
-            } for each in info["symbols"]
-        ]
-        return pd.DataFrame(data)
-
+if __name__ == '__main__':
+    ...
+    # st = TimeUtils.now_in_ms()
+    # print(len(BinanceExchange.get_klines_by_symbol(["BTCUSDT", "ETHUSDT"], '1m', str(st-1000000), str(st))[0]))

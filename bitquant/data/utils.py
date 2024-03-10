@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import datetime, timedelta, timezone
 
-class TimeManager:
+class TimeUtils:
 
     @staticmethod
     def now_in_ms() -> int:
