@@ -18,6 +18,7 @@ from bitquant.data.utils import TimeUtils
 # https://api.lbkex.com/v2/kline.do?size=3&type=hour4&time=1705015573&symbol=bch_usdt
 # logic: descending order an discard the first data
 
+ResponseType = Union[str, float, int]
 
 class BaseAPIHandler(ABC):
     base_url: str

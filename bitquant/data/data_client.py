@@ -1,7 +1,7 @@
 from typing import List, Any, Dict
 import pandas as pd
 import numpy as np
-from bitquant.data.exchange import BinanceExchange
+from bitquant.data.exchange import BinanceExchange, ResponseType
 from bitquant.data.utils import TimeUtils
 
 
@@ -11,7 +11,7 @@ class DataClient:
     def __init__(self, exchange: BinanceExchange):
         self.exchange = exchange
 
-    def get_symbol_info(self):
+    def get_symbol_info(self) -> List[Dict[str, ResponseType]]:
         symbol_info = self.exchange.get_symbol_info()
         return symbol_info
 
@@ -21,8 +21,9 @@ class DataClient:
         klines = self.process_aggregated_symbols_kline(klines)
         return klines
 
+
     @staticmethod
-    def klines_to_df(klines:Dict[str, List[List[Any]]]) -> pd.DataFrame:
+    def klines_to_df(klines:Dict[str, List[List[ResponseType]]]) -> pd.DataFrame:
         def parse(kline: List[List[Any]]):
             kl_df = pd.DataFrame(kline, columns=["ots", "open", "high", "low", "close", "volume", "ts",
                                             "usd_v", "n_trades", "taker_buy_v", "taker_buy_usd", "ig"]).drop(["ots", "ig"], axis=1)
@@ -75,3 +76,4 @@ class DataClient:
 
 if __name__ == "__main__":
     client = DataClient(BinanceExchange)
+    print(client.symbol_info_to_symbols(client.get_symbol_info()))

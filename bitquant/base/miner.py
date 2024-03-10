@@ -37,8 +37,8 @@ class QuantMiner(BaseNeuron):
         bt.logging.info(f"Attaching forward function to miner axon.")
         self.axon.attach(
             forward_fn=self.forward,
-            blacklist_fn=self.blacklist,
-            priority_fn=self.priority,
+            # blacklist_fn=self.blacklist,
+            # priority_fn=self.priority,
         )
 
         bt.logging.info(f"Axon created: {self.axon}")

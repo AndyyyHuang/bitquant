@@ -3,32 +3,36 @@ from pydantic import BaseModel, validator, Field, ValidationError
 import bittensor as bt
 from starlette.responses import StreamingResponse
 
-from bitquant.base.pair import Pair
+from bitquant.base.pair import Portfolio
 
-# TODO unsure of these basemodels
 class MinerEvaluationWindow(BaseModel):
     start: int
     end: int
 
-class Portfolio(BaseModel):
-    holdings: Dict[Pair, float]
+    @validator('end')
+    def check_start_less_than_end(cls, v, values, **kwargs):
+        if 'start' in values and v <= values['start']:
+            raise ValueError('end must be greater than start')
+        return v
 
-class Trade(BaseModel):
-    pair: Pair
-    time: int
+# need BaseModel to type check
+class PortfolioModel(BaseModel):
+    portfolio: Portfolio
+
+
 
 class StreamingTradeHistory(bt.StreamingSynapse):
 
     miner_window: MinerEvaluationWindow = Field(...)
-    portfolio_start: Portfolio = Field(None)
-    trade_history: List[Trade] = Field(default_factory=list())
+    new_portfolio: PortfolioModel = Field(...)
+    # portfolio_history: List[Portfolio] = Field(default_factory=list())
 
 
-    def deserialize(self) -> Tuple[Portfolio, List[Trade]]:
-        return self.portfolio_start, self.trade_history
+    def deserialize(self) -> List[Portfolio]:
+        return self.new_portfolio.portfolio
 
     # TODO unsure about this
-    async def process_streaming_response(self, response: StreamingResponse) -> AsyncIterator[Trade]:
+    async def process_streaming_response(self, response: StreamingResponse) -> AsyncIterator[PortfolioModel]:
         if self.trade_history is None:
             self.trade_history = []
 
@@ -68,3 +72,10 @@ class StreamingTradeHistory(bt.StreamingSynapse):
             "portfolio_start": self.portfolio_start,
             "trade_history": self.trade_history,
         }
+
+
+if __name__ == "__main__":
+    p = Portfolio({"BTCUSDT":1})
+    p = p.update_portfolio({"BTCUSDT":2})
+    print(p)
+    # PortfolioModel(portfolio=p)
