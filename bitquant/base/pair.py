@@ -1,12 +1,11 @@
-from copy import deepcopy
+from functools import reduce
 from typing import Union, Dict, List, Tuple, Any
-from collections import namedtuple
 from bitquant.data.data_client import DataClient
 from bitquant.data.exchange import BinanceExchange
 
 Values = Union[int, float]
 
-def get_available_pairs(exchange, base="USDT"):
+def get_available_pairs(exchange=BinanceExchange, base="USDT"):
     client = DataClient(exchange)
     symbol_info = client.get_symbol_info()
     usdt_pairs = [d['symbol'] for d in symbol_info if d['symbol'].endswith(base)]
@@ -61,8 +60,11 @@ class Portfolio(dict):
 
     Initialization:
         - Portfolio(values=[-1, 0.5, 0.1, ...])
+            -- values here has to be in the same order as TRADABLE_PAIRS
         - Portfolio(values=tuple([-1, 0.5, 0.1, ...]))
-        - Portfolio(values={"BTCUSDT": -1, "ETHUSDT": 0.5, ...}) (keys here doesn't have to be in order)
+            -- values here has to be in the same order as TRADABLE_PAIRS
+        - Portfolio(values={"BTCUSDT": -1, "ETHUSDT": 0.5, ...})
+            -- keys here doesn't have to be in order
     """
     pairs = TRADABLE_PAIRS
 
@@ -78,8 +80,14 @@ class Portfolio(dict):
         else:
             raise TypeError(f"unexpected type {type(values)}")
 
-    def update_portfolio(self, changes:Dict[str, Union[int, float]]) -> 'Portfolio':
-        return Portfolio({**self, **changes})
+    def update_portfolio(self, changes:Union[List[Dict], Dict[str, Union[int, float]]]) -> 'Portfolio':
+        if isinstance(changes, dict):
+            return Portfolio({**self, **changes})
+        elif isinstance(changes, list) and all(isinstance(d, dict) for d in changes):
+            changes = reduce(lambda a,b: a.update(b), changes)
+            return Portfolio({**self, **changes})
+        else:
+            raise TypeError("cannot update portfolio with changes")
 
     def __setitem__(self, __key: Any, __value: Any) -> None:
         raise AttributeError("Portfolio class is immutable")
