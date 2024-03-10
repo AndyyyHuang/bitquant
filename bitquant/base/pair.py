@@ -4,6 +4,8 @@ from collections import namedtuple
 from bitquant.data.data_client import DataClient
 from bitquant.data.exchange import BinanceExchange
 
+Values = Union[int, float]
+
 def get_available_pairs(exchange, base="USDT"):
     client = DataClient(exchange)
     symbol_info = client.get_symbol_info()
@@ -64,7 +66,7 @@ class Portfolio(dict):
     """
     pairs = TRADABLE_PAIRS
 
-    def __init__(self, values: Union[Dict, List, Tuple]):
+    def __init__(self, values: Union[Dict[str, Values], List[Values], Tuple[Values, ...]]):
         if isinstance(values, dict):
             if not all((failed_key := k) in self.pairs for k in values.keys()):
                 raise KeyError(f"Key={failed_key} not in TRADABLE_PAIRS")

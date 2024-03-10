@@ -19,17 +19,24 @@ class MinerEvaluationWindow(BaseModel):
 class PortfolioModel(BaseModel):
     portfolio: Portfolio
 
+    # HACK figure out why type checking is not happening automatically
+    @validator('portfolio', pre=True)
+    def check_portfolio_values(cls, value):
+        if not all(isinstance(v, (int, float)) for v in value.values()):
+            raise ValueError("All values in the portfolio must be integers or floats")
+        return value
+
 
 
 class StreamingTradeHistory(bt.StreamingSynapse):
 
     miner_window: MinerEvaluationWindow = Field(...)
-    new_portfolio: PortfolioModel = Field(...)
-    # portfolio_history: List[Portfolio] = Field(default_factory=list())
+    # new_portfolio: PortfolioModel = Field(...)
+    portfolio_history: List[PortfolioModel] = Field(default_factory=list())
 
 
-    def deserialize(self) -> List[Portfolio]:
-        return self.new_portfolio.portfolio
+    def deserialize(self) -> List[PortfolioModel]:
+        return self.portfolio_history
 
     # TODO unsure about this
     async def process_streaming_response(self, response: StreamingResponse) -> AsyncIterator[PortfolioModel]:
@@ -76,6 +83,10 @@ class StreamingTradeHistory(bt.StreamingSynapse):
 
 if __name__ == "__main__":
     p = Portfolio({"BTCUSDT":1})
-    p = p.update_portfolio({"BTCUSDT":2})
-    print(p)
+    m = PortfolioModel(portfolio=p)
+    # p = p.update_portfolio({"BTCUSDT":2})
+    a = p.update_portfolio({"BTCUSDT":'2'})
+    print(a)
+    x = PortfolioModel(portfolio=a)
+    print(x)
     # PortfolioModel(portfolio=p)

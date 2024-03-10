@@ -25,7 +25,7 @@ class BaseAPIHandler(ABC):
     limit_per_second: int
 
     @classmethod
-    def get_json(cls, endpoint: str, params:Dict[str, Any] = {}):
+    def get_json(cls, endpoint: str, params:Dict[str, ResponseType] = {}):
         url = cls.base_url + endpoint
         try:
             response = requests.get(url, params=params)
@@ -45,14 +45,14 @@ class BaseAPIHandler(ABC):
         return response.json()
 
     @classmethod
-    async def async_get_json(cls, session:aiohttp.ClientSession, url, param):
+    async def async_get_json(cls, session:aiohttp.ClientSession, url, param:Dict[str, ResponseType]):
         async with session.get(url, params=param, timeout=10) as response:
             response.raise_for_status()
             data = await response.json()
             return data
 
     @classmethod
-    async def batch_get_json(cls, endpoint:str, params:List[Dict[str, Any]] = []):
+    async def batch_get_json(cls, endpoint:str, params:List[Dict[str, ResponseType]] = []):
         url = cls.base_url + endpoint
         # timeout = aiohttp.ClientTimeout(total=15) # use limit_per_second??
         async with aiohttp.ClientSession() as session:
@@ -94,7 +94,7 @@ class BinanceExchange(BaseAPIHandler):
         return data
 
     @classmethod
-    def get_klines(cls, params:List[Dict[str,Any]]=None, asynchonous_batch=True):
+    def get_klines(cls, params:List[Dict[str,ResponseType]]=None, asynchonous_batch=True):
         '''
         Return:
             List[all_symbols_list[kline_data_list]]
