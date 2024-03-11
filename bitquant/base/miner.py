@@ -67,7 +67,7 @@ class QuantMiner(BaseNeuron):
         end_time = synapse.miner_window.end
 
         # create lazy stream function to stream new portfolio updates within start_time and end_time
-        # TODO finish the stream function
+        # TODO not sure this is right
         async def _stream(start_time: int, end_time: int, send: Send):
             t_now = TimeUtils.now_in_ms()
             assert t_now >= start_time, f"{self.block=}, {start_time=}"

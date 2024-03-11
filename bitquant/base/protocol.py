@@ -1,30 +1,67 @@
-from typing import List, Dict, Tuple, AsyncIterator
-from pydantic import BaseModel, validator, Field, ValidationError
+from typing import List, Dict, Tuple, AsyncIterator, Union, Any
+from functools import reduce
+from pydantic import BaseModel, validator, Field, ValidationError, PrivateAttr
 import bittensor as bt
 from starlette.responses import StreamingResponse
 
-from bitquant.base.pair import Portfolio
+from bitquant.base.pair import TRADABLE_PAIRS, Values
+from bitquant.data.utils import TimeUtils
 
-class MinerEvaluationWindow(BaseModel):
-    start_ms: int
-    end_ms: int
+class SymbolValueDict(dict):
+    """
+    Stores the portfolio of current pair holdings
+    SymbolValueDict is meant to be immutable
+    The only method available is update_portfolio() which creates a new SymbolValueDict instance
 
-    @validator('end')
-    def check_start_less_than_end(cls, v, values, **kwargs):
-        if 'start' in values and v <= values['start']:
-            raise ValueError('end must be greater than start')
-        return v
+    Initialization:
+        - SymbolValueDict(values=[-1, 0.5, 0.1, ...])
+            -- values here has to be in the same order as TRADABLE_PAIRS
+        - SymbolValueDict(values=tuple([-1, 0.5, 0.1, ...]))
+            -- values here has to be in the same order as TRADABLE_PAIRS
+        - SymbolValueDict(values={"BTCUSDT": -1, "ETHUSDT": 0.5, ...})
+            -- keys here doesn't have to be in order
+        - SymbolValueDict({})  # creates a SymbolValueDict with
+    """
+    pairs = TRADABLE_PAIRS
 
-# need BaseModel to type check
-class PortfolioModel(BaseModel):
-    portfolio: Portfolio
-    timestamp_ms: int
+    def __init__(self, values: Union[Dict[str, Values], List[Values], Tuple[Values, ...]]):
+        if isinstance(values, dict):
+            if not all((failed_key := k) in self.pairs for k in values.keys()):
+                raise KeyError(f"Key={failed_key} not in TRADABLE_PAIRS")
+            super().__init__({p:values.get(p, 0) for p in self.pairs})
+        elif isinstance(values, (list, tuple)):
+            if len(values) != len(self.pairs):
+                raise IndexError(f"values length has to be the same as length of TRADABLE_PAIRS")
+            super().__init__({p:values[i] for i,p in enumerate(self.pairs)})
+        else:
+            raise TypeError(f"unexpected type {type(values)}")
 
-    @validator('timestamp_ms')
-    def check_timestamp_length(cls, v):
-        if len(str(v)) != 13:
-            raise ValueError("timestamp_ms should be 13 digits long")
-        return v
+    def update_portfolio(self, changes:Union[List[Dict], Dict[str, Union[int, float]]]) -> 'SymbolValueDict':
+        if isinstance(changes, dict):
+            return SymbolValueDict({**self, **changes})
+        elif isinstance(changes, list) and all(isinstance(d, dict) for d in changes):
+            return reduce(lambda a,b: a.update(b), [self] + changes)
+        else:
+            raise TypeError("cannot update portfolio with changes")
+
+    def __setitem__(self, __key: Any, __value: Any) -> None:
+        raise AttributeError("SymbolValueDict class is immutable")
+    def __delitem__(self, __key: Any) -> None:
+        raise AttributeError("SymbolValueDict class is immutable")
+
+
+class PortfolioRecord(BaseModel):
+    portfolio: SymbolValueDict
+    timestamp_ms: int = TimeUtils.now_in_ms()
+
+    def __init__(self, svdict: SymbolValueDict):
+        super().__init__(portfolio=svdict)
+
+    def to_dict(self) -> Dict[str, Union[SymbolValueDict, int]]:
+        return {
+            'portfolio': self.portfolio,
+            'timestamp_ms': self.timestamp_ms
+        }
 
     # HACK figure out why type checking is not happening automatically
     @validator('portfolio', pre=True)
@@ -36,11 +73,28 @@ class PortfolioModel(BaseModel):
         return value
 
 
+class MinerEvaluationWindow(BaseModel):
+    start_ms: int
+    end_ms: int
+
+    @validator('end_ms')
+    def check_start_less_than_end(cls, v, values, **kwargs):
+        if 'start' in values and v <= values['start']:
+            raise ValueError('end must be greater than start')
+        return v
+
+# # need BaseModel to type check
+# class PortfolioModel(BaseModel):
+#     portfolio: Portfolio
+#     timestamp_ms: int
+
+
+
 
 class StreamingTradeHistory(bt.StreamingSynapse):
 
     miner_window: MinerEvaluationWindow = Field(..., allow_mutation=False)
-    portfolio_history: List[PortfolioModel] = Field(default_factory=list(), allow_mutation=True)
+    portfolio_history: List[PortfolioRecord] = Field(default_factory=list(), allow_mutation=True)
 
     # @validator('portfolio_history', each_item=True)
     # def check_timestamp_in_range(cls, v, values, **kwargs):
@@ -59,11 +113,11 @@ class StreamingTradeHistory(bt.StreamingSynapse):
         return portfolio_history
 
 
-    def deserialize(self) -> List[PortfolioModel]:
+    def deserialize(self) -> List[PortfolioRecord]:
         return self.portfolio_history
 
     # TODO unsure about this
-    async def process_streaming_response(self, response: StreamingResponse) -> AsyncIterator[PortfolioModel]:
+    async def process_streaming_response(self, response: StreamingResponse) -> AsyncIterator[PortfolioRecord]:
         # if self.trade_history is None:
             # self.trade_history = []
 
@@ -105,11 +159,15 @@ class StreamingTradeHistory(bt.StreamingSynapse):
 
 
 if __name__ == "__main__":
-    p = Portfolio({"BTCUSDT":1})
-    m = PortfolioModel(portfolio=p, timestamp_ms=1600203090)
+    import json
+    svdict = SymbolValueDict({"BTCUSDT":1})
+    PortfolioRecord(svdict=svdict)
+    # m = PortfolioModel(portfolio=p, timestamp_ms=1600203090000)
     # p = p.update_portfolio({"BTCUSDT":2})
-    a = p.update_portfolio({"BTCUSDT":'2'})
-    print(a)
-    x = PortfolioModel(portfolio=a)
-    print(x)
+    # a = p.update_portfolio({"BTCUSDT":2})
+    # print(a)
+    # x = PortfolioModel(portfolio=a, timestamp_ms=1600203090000)
+    # print(x)
+    # print(json.dumps(x))
+
     # PortfolioModel(portfolio=p)
