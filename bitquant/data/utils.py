@@ -8,14 +8,14 @@ class TimeUtils:
         return int(datetime.utcnow().replace(tzinfo=timezone.utc).timestamp() * 1000)
 
     @staticmethod
-    def str_to_timestamp(dt_str:str, format: str) -> datetime:
+    def str_to_timestamp(dt_str: str, format: str) -> datetime:
         return datetime.strptime(dt_str, format)
     @staticmethod
-    def timestamp_to_ms(dt) -> int:
+    def timestamp_to_ms(dt: datetime) -> int:
         return int(dt.timestamp() * 1000)
     @staticmethod
-    def dt_str_to_ms(dt_str:str, format: str):
-        return int(datetime.strptime(dt_str, format).timestamp() * 1000)
+    def dt_str_to_ms(dt_str: str, format: str):
+        return int(datetime.strptime(dt_str, format).replace(tzinfo=timezone.utc).timestamp() * 1000)
 
     @staticmethod
     def ms_to_timestamp(ms: int) -> datetime:

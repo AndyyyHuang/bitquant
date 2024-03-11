@@ -25,7 +25,7 @@ class BaseAPIHandler(ABC):
     limit_per_second: int
 
     @classmethod
-    def get_json(cls, endpoint: str, params:Dict[str, ResponseType] = {}):
+    def get_json(cls, endpoint: str, params: Dict[str, ResponseType] = {}):
         url = cls.base_url + endpoint
         try:
             response = requests.get(url, params=params)
@@ -45,20 +45,22 @@ class BaseAPIHandler(ABC):
         return response.json()
 
     @classmethod
-    async def async_get_json(cls, session:aiohttp.ClientSession, url, param:Dict[str, ResponseType]):
+    async def async_get_json(cls, session: aiohttp.ClientSession, url, param: Dict[str, ResponseType]):
         async with session.get(url, params=param, timeout=10) as response:
             response.raise_for_status()
             data = await response.json()
             return data
 
     @classmethod
-    async def batch_get_json(cls, endpoint:str, params:List[Dict[str, ResponseType]] = []):
+    async def batch_get_json(cls, endpoint: str, params: List[Dict[str, ResponseType]] = []):
         url = cls.base_url + endpoint
         # timeout = aiohttp.ClientTimeout(total=15) # use limit_per_second??
         async with aiohttp.ClientSession() as session:
             # tasks = [asyncio.ensure_future(cls.async_get_json(session=session, url=url, param=param) for param in params)]
             tasks = [cls.async_get_json(session=session, url=url, param=param) for param in params]
             all_responses = await asyncio.gather(*tasks)
+            # concatenate responses
+            all_responses = [element for innerList in all_responses for element in innerList]
         return all_responses
 
     @classmethod
@@ -91,10 +93,12 @@ class BinanceExchange(BaseAPIHandler):
                 "notional": each["filters"][5]["notional"]
             } for each in cls.get_exchange_info()["symbols"]
         ]
-        return data
+        symbol_info = pd.DataFrame(data)
+        symbol_info = symbol_info.loc[(symbol_info["contractType"] == "PERPETUAL") & (symbol_info["status"] == "TRADING")]
+        return symbol_info
 
     @classmethod
-    def get_klines(cls, params:List[Dict[str,ResponseType]]=None, asynchonous_batch=True):
+    def get_klines(cls, params: List[Dict[str, ResponseType]]=None, asynchonous_batch=True):
         '''
         Return:
             List[all_symbols_list[kline_data_list]]
@@ -109,7 +113,7 @@ class BinanceExchange(BaseAPIHandler):
     @classmethod
     def get_klines_by_symbol(cls, symbols: List[str], interval: str, st: str, et: str):
         # build params
-        limit = 1500
+        limit = 1000
         st_in_ms = TimeUtils.dt_str_to_ms(st, format="%Y-%m-%d %H:%M:%S")
         et_in_ms = TimeUtils.dt_str_to_ms(et, format="%Y-%m-%d %H:%M:%S")
         interval_in_ms = TimeUtils.interval_str_to_ms(interval)
@@ -117,21 +121,80 @@ class BinanceExchange(BaseAPIHandler):
         # TODO need tests
         # TODO check if it's including or excluding for et_
         # create params for each symbol and for every request interval
-        params = [{
-            "pair": symbol,
-            "contractType": "PERPETUAL",
-            "interval": interval,
-            "startTime": st_,
-            "endTime": et_in_ms,
-            "limit": 1000
-        } for symbol in symbols for st_ in range(st_in_ms, et_in_ms, interval_in_ms*limit)]
+        # Response will include et
+        ret = {}
+        for symbol in symbols:
+            params = [{
+                "pair": symbol,
+                "contractType": "PERPETUAL",
+                "interval": interval,
+                "startTime": st_,
+                "endTime": et_in_ms,
+                "limit": limit
+            } for st_ in range(st_in_ms, et_in_ms, interval_in_ms*limit)]
 
-        # create dictionary using pair name and klines
-        ret = {p['pair']:k for p,k in zip(params, cls.get_klines(params))}
+            # create dictionary using pair name and klines
+            ret[symbol] = cls.get_klines(params)
         return ret
 
+    @classmethod
+    def get_aggregated_symbols_kline(cls, symbols: List[str], interval: str, st: str, et: str) -> pd.DataFrame:
+        klines = cls.get_klines_by_symbol(symbols, interval, st, et)
+        def parse(kline: List[List[Any]]):
+            kl_df = pd.DataFrame(kline, columns=["ots", "open", "high", "low", "close", "volume", "ts",
+                                            "usd_v", "n_trades", "taker_buy_v", "taker_buy_usd", "ig"]).drop(["ots", "ig"], axis=1)
+            kl_df['ts'] = kl_df['ts'] + 1
+            kl_df['ts'] = kl_df['ts'].apply(TimeUtils.ms_to_timestamp)
+            kl_df.set_index("ts", inplace=True)
+            return kl_df
+        # turn list in dict into df
+        klines = {pair: parse(kline) for pair, kline in klines.items()}
+
+        btc = klines["BTCUSDT"]
+        st = btc.index[0]
+        et = btc.index[-1]
+
+        ts_lis = btc.index.tolist()
+        col = btc.columns.tolist() + ['vwap']
+
+        # symbols = list(klines.keys())
+        multi_idx = pd.MultiIndex.from_product([ts_lis, symbols], names=["ts", "symbol"])
+        data = np.full(shape=(len(ts_lis), len(symbols), len(col)), fill_value=np.nan)
+
+        # wrong_symbol = []
+        for symbol, kline in klines.items():
+            indice = symbols.index(symbol)
+            try:
+                kline = kline.loc[(kline.index >= st) & (kline.index <= et)]
+                kline = kline.apply(pd.to_numeric)
+                kline['vwap'] = (kline['usd_v'] / kline['volume']).ffill().bfill()  # volume可能为0而导致nan，填充即可
+                st_idx = ts_lis.index(kline.index[0])
+                ed_idx = ts_lis.index(kline.index[-1])
+                data[st_idx:ed_idx + 1, indice, :] = kline.values
+            except:
+                # wrong_symbol.append(symbol)
+                traceback.print_exc()
+
+        aggregated_klines = pd.DataFrame(data.reshape(-1, data.shape[-1]), index=multi_idx, columns=col)
+        # symbols = list(set(symbols).difference(set(wrong_symbol)))
+        # df = df.loc[(slice(None), symbols), :]
+        aggregated_klines['return_1'] = (aggregated_klines['close'].unstack().diff(1).shift(-1) / aggregated_klines[
+            'close'].unstack()).stack()
+        # symbols_with_complete_data = aggregated_klines["close"].unstack().isna().sum(axis=0)[
+        #    aggregated_klines["close"].unstack().isna().sum(axis=0) == 0].index.tolist()
+        # aggregated_klines = aggregated_klines.loc[(slice(None), symbols_with_complete_data), :]
+
+
+        return aggregated_klines
 
 if __name__ == '__main__':
+    symbols = ["BTCUSDT", "ETHUSDT"]
+    st = "2023-01-01 00:00:00"
+    et = "2024-01-01 00:00:00"
+    interval = "1h"
+    aggregated_kline = BinanceExchange.get_aggregated_symbols_kline(symbols, interval, st, et)
+
+    print((pd.Series(aggregated_kline.index.get_level_values(0).unique()).diff().dropna() != TimeUtils.str_to_timedelta(interval)).sum())
     ...
     # st = TimeUtils.now_in_ms()
     # print(len(BinanceExchange.get_klines_by_symbol(["BTCUSDT", "ETHUSDT"], '1m', str(st-1000000), str(st))[0]))

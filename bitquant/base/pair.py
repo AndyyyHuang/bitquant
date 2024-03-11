@@ -8,7 +8,7 @@ Values = Union[int, float]
 def get_available_pairs(exchange=BinanceExchange, base="USDT"):
     client = DataClient(exchange)
     symbol_info = client.get_symbol_info()
-    usdt_pairs = [d['symbol'] for d in symbol_info if d['symbol'].endswith(base)]
+    usdt_pairs = symbol_info.loc[symbol_info["symbol"].apply(lambda x: x.endswith(base)), "symbol"].tolist()
     return usdt_pairs
 
 TRADABLE_PAIRS = ('BTCUSDT', 'ETHUSDT', 'BCHUSDT', 'XRPUSDT', 'EOSUSDT', 'LTCUSDT', 'TRXUSDT',
@@ -96,4 +96,4 @@ class Portfolio(dict):
 
 if __name__ == "__main__":
     ...
-    # print(get_available_pairs(BinanceExchange))
+    print(get_available_pairs(BinanceExchange))
