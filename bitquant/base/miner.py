@@ -4,6 +4,7 @@ import asyncio
 import argparse
 import threading
 import traceback
+import json
 from abc import ABC, abstractmethod
 from functools import partial
 from starlette.types import Send
@@ -12,7 +13,9 @@ import bittensor as bt
 from typing import List, Dict, Tuple, Union, Callable, Awaitable
 
 from bitquant.base.protocol import StreamingTradeHistory
+from bitquant.base.pair import Portfolio
 from bitquant.base.neuron import BaseNeuron
+from bitquant.data.utils import TimeUtils
 
 class QuantMiner(BaseNeuron):
     def __init__(self, config=None):
@@ -66,17 +69,26 @@ class QuantMiner(BaseNeuron):
         # create lazy stream function to stream new portfolio updates within start_time and end_time
         # TODO finish the stream function
         async def _stream(start_time: int, end_time: int, send: Send):
-            assert self.block >= start_time, f"{self.block=}, {start_time=}"
-            while self.block <= end_time:
-                # pull from portfolio and send?
+            t_now = TimeUtils.now_in_ms()
+            assert t_now >= start_time, f"{self.block=}, {start_time=}"
+
+            # initialize an empty portfolio with positions all 0's
+            if not self.portfolio:
+                self.portfolio.append(Portfolio({}))
+
+            while t_now <= end_time:
+                # select lastest portfolio and send package
+                portfolio = self.portfolio[-1]
+                portfolio = json.dumps(portfolio).encode('utf-8')
                 await send(
                     {
                         "type": "http.response.body",
-                        # "body": joined_buffer.encode("utf-8"),
+                        "body": portfolio,
                         "more_body": True,
                     }
                 )
-                ...
+            else:
+                bt.logging.debug(f"time now exceeded {end_time=}")
 
         portfolio_streamer = partial(_stream, start_time, end_time)
         return synapse.create_streaming_response(portfolio_streamer)
@@ -88,8 +100,6 @@ class QuantMiner(BaseNeuron):
         listening for incoming requests and periodically updating the miner's knowledge
         of the network graph.
         """
-        # TODO really should only check once in __init__?
-        self.check_registered()
 
         bt.logging.info(
             f"Serving axon {StreamingTradeHistory} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"

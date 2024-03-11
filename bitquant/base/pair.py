@@ -84,8 +84,7 @@ class Portfolio(dict):
         if isinstance(changes, dict):
             return Portfolio({**self, **changes})
         elif isinstance(changes, list) and all(isinstance(d, dict) for d in changes):
-            changes = reduce(lambda a,b: a.update(b), changes)
-            return Portfolio({**self, **changes})
+            return reduce(lambda a,b: a.update(b), [self] + changes)
         else:
             raise TypeError("cannot update portfolio with changes")
 
@@ -96,4 +95,6 @@ class Portfolio(dict):
 
 if __name__ == "__main__":
     ...
-    print(get_available_pairs(BinanceExchange))
+    # print(get_available_pairs(BinanceExchange))
+    a = Portfolio({})
+    print(a)
