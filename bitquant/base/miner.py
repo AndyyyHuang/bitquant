@@ -12,8 +12,7 @@ from starlette.types import Send
 import bittensor as bt
 from typing import List, Dict, Tuple, Union, Callable, Awaitable
 
-from bitquant.base.protocol import StreamingTradeHistory
-from bitquant.base.pair import Portfolio
+from bitquant.base.protocol import StreamingPortfolioHistory, PortfolioRecord
 from bitquant.base.neuron import BaseNeuron
 from bitquant.data.utils import TimeUtils
 
@@ -62,9 +61,9 @@ class QuantMiner(BaseNeuron):
         thread = threading.Thread(target=get_valid_hotkeys, args=(self.config,))
         '''
 
-    def forward(self, synapse: StreamingTradeHistory) -> StreamingTradeHistory:
-        start_time = synapse.miner_window.start
-        end_time = synapse.miner_window.end
+    def forward(self, synapse: StreamingPortfolioHistory) -> StreamingPortfolioHistory:
+        start_time = synapse.miner_window.start_ms
+        end_time = synapse.miner_window.end_ms
 
         # create lazy stream function to stream new portfolio updates within start_time and end_time
         # TODO not sure this is right
@@ -74,7 +73,7 @@ class QuantMiner(BaseNeuron):
 
             # initialize an empty portfolio with positions all 0's
             if not self.portfolio:
-                self.portfolio.append(Portfolio({}))
+                self.portfolio.append(PortfolioRecord({}))
 
             while t_now <= end_time:
                 # select lastest portfolio and send package
@@ -102,7 +101,7 @@ class QuantMiner(BaseNeuron):
         """
 
         bt.logging.info(
-            f"Serving axon {StreamingTradeHistory} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
+            f"Serving axon {StreamingPortfolioHistory} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
         )
         self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
 

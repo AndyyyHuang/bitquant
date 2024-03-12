@@ -7,7 +7,8 @@ from typing import List
 import bittensor as bt
 
 from bitquant.base.neuron import BaseNeuron
-from bitquant.base.protocol import StreamingTradeHistory, MinerEvaluationWindow
+from bitquant.base.protocol import StreamingPortfolioHistory, MinerEvaluationWindow
+from bitquant.data.utils import TimeUtils
 import torch
 
 class QuantValidator(BaseNeuron):
@@ -222,10 +223,14 @@ class QuantValidator(BaseNeuron):
         - Updating the scores
         """
         try:
-            miner_window = MinerEvaluationWindow(start=self.block, end=self.block + self.evaluation_window)
-            syn = StreamingTradeHistory(miner_window=miner_window)
+            now = TimeUtils.now_in_ms()
+            miner_window = MinerEvaluationWindow(
+                start=now,
+                end=now + self.evaluation_window)
+            syn = StreamingPortfolioHistory(miner_window=miner_window)
 
             # miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
+            miner_uids = [20]
 
             # search_query = SearchSynapse(
             #     query_string=query_string,
@@ -240,7 +245,7 @@ class QuantValidator(BaseNeuron):
             # The dendrite client queries the network.
             responses = await self.dendrite(
                 # Send the query to selected miner axons in the network.
-                # axons=[self.metagraph.axons[uid] for uid in miner_uids],
+                axons=[self.metagraph.axons[uid] for uid in miner_uids],
                 synapse=syn,
 
                 # TODO check deserialize
@@ -253,6 +258,10 @@ class QuantValidator(BaseNeuron):
                 # timeout=120,
                 timeout=float('inf'),
             )
+
+            for resp in responses:
+                async for chunk in resp:
+                    print(chunk)
 
             # Log the results for monitoring purposes.
             bt.logging.info(f"Received responses: {responses}")
