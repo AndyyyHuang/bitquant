@@ -143,7 +143,7 @@ class BaseNeuron(ABC):
         This is useful for non-blocking operations.
         """
         if not self.is_running:
-            bt.logging.debug(f"Starting {self.__name__} in background thread.")
+            bt.logging.debug(f"Starting {type(self).__name__} in background thread.")
             self.should_exit = False
             self.thread = threading.Thread(target=self.run, daemon=True)
             self.thread.start()
@@ -155,7 +155,7 @@ class BaseNeuron(ABC):
         Stops the neuron's operations that are running in the background thread.
         """
         if self.is_running:
-            bt.logging.debug(f"Stopping {self.__name__} in background thread.")
+            bt.logging.debug(f"Stopping {type(self).__name__} in background thread.")
             self.should_exit = True
             self.thread.join(5)
             self.is_running = False
@@ -179,7 +179,7 @@ class BaseNeuron(ABC):
                        None if the context was exited without an exception.
         """
         if self.is_running:
-            bt.logging.debug(f"Stopping {self.__name__} in background thread.")
+            bt.logging.debug(f"Stopping {type(self).__name__} in background thread.")
             self.should_exit = True
             self.thread.join(5)
             self.is_running = False
