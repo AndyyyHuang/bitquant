@@ -12,11 +12,11 @@ from bitquant.utils.timeutils import TimeUtils
 import torch
 
 class QuantValidator(BaseNeuron):
-    def __init__(self, evaluation_window:int, evaluator):
+    def __init__(self, evaluation_window:int, evaluator, config=None):
         self.evaluation_window = evaluation_window
         self.evaluator = evaluator
         # initiate neuron
-        super().__init__(config=self.config())
+        super().__init__(config, type(self).__name__)
 
         # Save a copy of the hotkeys to local memory.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)

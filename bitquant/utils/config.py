@@ -2,8 +2,6 @@ import os
 import argparse
 import bittensor as bt
 from loguru import logger
-from bitquant.base.miner import QuantMiner
-from bitquant.base.validator import QuantValidator
 
 
 def check_config(cls, config: "bt.Config"):
@@ -39,7 +37,7 @@ def check_config(cls, config: "bt.Config"):
         )
 
 
-def add_args(cls, parser):
+def add_args(cls, parser, neuron_type):
     """
     Adds relevant arguments to the parser for operation.
     """
@@ -83,7 +81,8 @@ def add_args(cls, parser):
     )
 
     # add miner and validator specific arguments
-    if isinstance(cls, QuantMiner):
+    print(cls.__name__)
+    if neuron_type == 'QuantMiner':
         parser.add_argument(
             "--neuron.name",
             type=str,
@@ -105,7 +104,7 @@ def add_args(cls, parser):
             default=False,
         )
 
-    elif isinstance(cls, QuantValidator):
+    elif neuron_type == 'QuantValidator':
         parser.add_argument(
             "--neuron.name",
             type=str,
@@ -180,10 +179,10 @@ def add_args(cls, parser):
         )
 
     else:
-        raise TypeError(f'setting config using unknown class {cls.__name__=}')
+        raise TypeError(f'setting config using unknown class {neuron_type=}')
 
 
-def config(cls):
+def config(cls, neuron_type):
     """
     Returns the configuration object specific to this miner or validator after adding relevant arguments.
     """
@@ -192,5 +191,5 @@ def config(cls):
     bt.subtensor.add_args(parser)
     bt.logging.add_args(parser)
     bt.axon.add_args(parser)
-    cls.add_args(parser)
+    cls.add_args(parser, neuron_type)
     return bt.config(parser)

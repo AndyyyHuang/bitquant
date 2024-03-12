@@ -19,7 +19,7 @@ from bitquant.utils.timeutils import TimeUtils
 class QuantMiner(BaseNeuron):
     def __init__(self, config=None):
         # initiate neuron
-        super().__init__(config)
+        super().__init__(config, type(self).__name__)
 
         # warn if allowing incoming requests from anyone.
         if not self.config.blacklist.force_validator_permit:
