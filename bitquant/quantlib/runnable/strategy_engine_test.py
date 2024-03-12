@@ -1,4 +1,5 @@
 from datetime import datetime
+from bitquant.data.exchange import BinanceExchange
 from bitquant.data.data_client import DataClient
 from bitquant.quantlib.strategy_engine import StrategyEngine
 from bitquant.quantlib.signal_generation.factor_calculator import FactorCalculator, function_map
@@ -9,14 +10,12 @@ from bitquant.quantlib.signal_generation.factor_aggregator import FactorAggregat
 
 def test():
 
-    symbol_lis = ["ETHUSDT", "BTCUSDT", "BNBUSDT", "SOLUSDT"]
+    symbols = ["ETHUSDT", "BTCUSDT", "BNBUSDT", "SOLUSDT"]
     interval = "1h"
     st = "2024-01-01 00:00:00"
     et = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    data_client = DataClient(exchange_name="BINANCE")
-    aggregated_kline = data_client.get_aggregated_symbols_kline(symbol_lis=symbol_lis, interval=interval, st=st, et=et)
-    data = data_client.process_aggregated_symbols_kline(aggregated_kline)
-
+    data_client = DataClient(BinanceExchange)
+    symbol_info, data = data_client.run(symbols, interval, st, et)
     factor_lis = ["ts_midpoint(ts_natr(high,low,close,7),14)", "ts_delta(dynamic_ts_max(ts_bbands(close,20),28),7)",
                   "ts_midpoint(ts_ht_trendmode(close),21)"]
 

@@ -72,19 +72,19 @@ class Portfolio(dict):
         if isinstance(values, dict):
             if not all((failed_key := k) in self.pairs for k in values.keys()):
                 raise KeyError(f"Key={failed_key} not in TRADABLE_PAIRS")
-            super().__init__({p:values.get(p, 0) for p in self.pairs})
+            super().__init__({p: values.get(p, 0) for p in self.pairs})
         elif isinstance(values, (list, tuple)):
             if len(values) != len(self.pairs):
                 raise IndexError(f"values length has to be the same as length of TRADABLE_PAIRS")
-            super().__init__({p:values[i] for i,p in enumerate(self.pairs)})
+            super().__init__({p: values[i] for i, p in enumerate(self.pairs)})
         else:
             raise TypeError(f"unexpected type {type(values)}")
 
-    def update_portfolio(self, changes:Union[List[Dict], Dict[str, Union[int, float]]]) -> 'Portfolio':
+    def update_portfolio(self, changes: Union[List[Dict], Dict[str, Union[int, float]]]) -> 'Portfolio':
         if isinstance(changes, dict):
             return Portfolio({**self, **changes})
         elif isinstance(changes, list) and all(isinstance(d, dict) for d in changes):
-            changes = reduce(lambda a,b: a.update(b), changes)
+            changes = reduce(lambda a, b: a.update(b), changes)
             return Portfolio({**self, **changes})
         else:
             raise TypeError("cannot update portfolio with changes")

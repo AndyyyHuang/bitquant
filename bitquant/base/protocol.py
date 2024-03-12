@@ -4,7 +4,7 @@ import bittensor as bt
 from starlette.responses import StreamingResponse
 
 from bitquant.base.pair import Portfolio
-
+from bitquant.data.utils import TimeUtils
 class MinerEvaluationWindow(BaseModel):
     start: int
     end: int
@@ -17,6 +17,7 @@ class MinerEvaluationWindow(BaseModel):
 
 # need BaseModel to type check
 class PortfolioModel(BaseModel):
+    ts_in_ms: int
     portfolio: Portfolio
 
     # HACK figure out why type checking is not happening automatically
@@ -83,10 +84,11 @@ class StreamingTradeHistory(bt.StreamingSynapse):
 
 if __name__ == "__main__":
     p = Portfolio({"BTCUSDT":1})
-    m = PortfolioModel(portfolio=p)
+    t = TimeUtils.now_in_ms()
+    m = PortfolioModel(portfolio=p, ts_in_ms=t)
     # p = p.update_portfolio({"BTCUSDT":2})
-    a = p.update_portfolio({"BTCUSDT":'2'})
-    print(a)
-    x = PortfolioModel(portfolio=a)
-    print(x)
+    new_m = m.portfolio.update_portfolio({"BTCUSDT": '2'})
+    print(new_m)
+    # x = PortfolioModel(portfolio=a)
+    # print(x)
     # PortfolioModel(portfolio=p)

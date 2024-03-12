@@ -1,5 +1,5 @@
 from bitquant.data.data_client import DataClient
-
+from bitquant.data.exchange import BinanceExchange
 
 
 if __name__ == "__main__":
@@ -7,8 +7,8 @@ if __name__ == "__main__":
     interval = "1h"
     st = "2023-01-01 00:00:00"
     et = "2024-01-01 00:00:00"
-    data_client = DataClient(exchange_name="BINANCE")
+    data_client = DataClient(BinanceExchange)
     symbol_info = data_client.exchange.get_symbol_info()
-    aggregated_klines = data_client.exchange.get_aggregated_symbols_kline(symbol_lis, interval, st, et)
-    data = data_client.process_aggregated_symbols_kline(aggregated_klines)
-    print(symbol_info, data)
+    symbol_info, aggregated_klines = data_client.run(symbol_lis, interval, st, et)
+
+    print(symbol_info, aggregated_klines)
