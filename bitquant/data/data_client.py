@@ -30,7 +30,7 @@ class DataClient:
 
     def run(self, symbols: List[str], interval, st, et):
         aggregated_klines = self.get_aggregated_symbols_kline(symbols, interval, st, et)
-        symbol_info = self.get_symbol_info()
+        symbol_info = self.get_symbol_info_by_symbols(symbols)
         return symbol_info, aggregated_klines
 
 
