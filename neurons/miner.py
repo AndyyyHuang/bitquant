@@ -35,6 +35,13 @@ from bitquant.quantlib.signal_generation.factor_aggregator import FactorAggregat
 # import miner class which takes care of most of the boilerplate
 from bitquant.base.miner import QuantMiner
 
+def run_miner():
+    with QuantMiner() as miner:
+        bt.logging.info("Miner running...", time.time())
+        time.sleep(200)
+        # miner.portfolio.append()
+
+
 
 # class Miner(BaseMinerNeuron):
 #     """
@@ -188,7 +195,4 @@ from bitquant.base.miner import QuantMiner
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
-    with Miner() as miner:
-        while True:
-            bt.logging.info("Miner running...", time.time())
-            time.sleep(5)
+    run_miner()
