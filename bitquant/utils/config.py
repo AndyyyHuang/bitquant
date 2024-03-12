@@ -1,117 +1,196 @@
-import bittensor as bt
-import argparse
 import os
+import argparse
+import bittensor as bt
+from loguru import logger
+from bitquant.base.miner import QuantMiner
+from bitquant.base.validator import QuantValidator
 
 
-# TODO way too verbose, clean up
 def check_config(cls, config: "bt.Config"):
-    bt.axon.check_config(config)
+    r"""Checks/validates the config namespace object."""
     bt.logging.check_config(config)
+
     full_path = os.path.expanduser(
-        "{}/{}/{}/{}".format(
-            config.logging.logging_dir,
-            config.wallet.get("name", bt.defaults.wallet.name),
-            config.wallet.get("hotkey", bt.defaults.wallet.hotkey),
-            config.miner.name,
-        )
-    )
-    config.miner.full_path = os.path.expanduser(full_path)
-    if not os.path.exists(config.miner.full_path):
-        os.makedirs(config.miner.full_path)
-
-
-def get_config() -> "bt.Config":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--axon.port", type=int, default=8098, help="Port to run the axon on."
-    )
-    # Subtensor network to connect to
-    parser.add_argument(
-        "--subtensor.network",
-        default="finney",
-        help="Bittensor network to connect to.",
-    )
-    # Chain endpoint to connect to
-    parser.add_argument(
-        "--subtensor.chain_endpoint",
-        default="wss://entrypoint-finney.opentensor.ai:443",
-        help="Chain endpoint to connect to.",
-    )
-    # Adds override arguments for network and netuid.
-    parser.add_argument(
-        "--netuid", type=int, default=1, help="The chain subnet uid."
-    )
-
-    parser.add_argument(
-        "--miner.root",
-        type=str,
-        help="Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ",
-        default="~/.bittensor/miners/",
-    )
-    parser.add_argument(
-        "--miner.name",
-        type=str,
-        help="Trials for this miner go in miner.root / (wallet_cold - wallet_hot) / miner.name ",
-        default="Bittensor Miner",
-    )
-
-    # Run config.
-    parser.add_argument(
-        "--miner.blocks_per_epoch",
-        type=str,
-        help="Blocks until the miner repulls the metagraph from the chain",
-        default=100,
-    )
-
-    # Switches.
-    parser.add_argument(
-        "--miner.no_serve",
-        action="store_true",
-        help="If True, the miner doesnt serve the axon.",
-        default=False,
-    )
-    parser.add_argument(
-        "--miner.no_start_axon",
-        action="store_true",
-        help="If True, the miner doesnt start the axon.",
-        default=False,
-    )
-
-    # Mocks.
-    parser.add_argument(
-        "--miner.mock_subtensor",
-        action="store_true",
-        help="If True, the miner will allow non-registered hotkeys to mine.",
-        default=False,
-    )
-
-    # Adds subtensor specific arguments i.e. --subtensor.chain_endpoint ... --subtensor.network ...
-    bt.subtensor.add_args(parser)
-
-    # Adds logging specific arguments i.e. --logging.debug ..., --logging.trace .. or --logging.logging_dir ...
-    bt.logging.add_args(parser)
-
-    # Adds wallet specific arguments i.e. --wallet.name ..., --wallet.hotkey ./. or --wallet.path ...
-    bt.wallet.add_args(parser)
-
-    # Adds axon specific arguments i.e. --axon.port ...
-    bt.axon.add_args(parser)
-
-    # Activating the parser to read any command-line inputs.
-    # To print help message, run python3 template/miner.py --help
-    config = bt.config(parser)
-
-    # Logging captures events for diagnosis or understanding miner's behavior.
-    config.full_path = os.path.expanduser(
         "{}/{}/{}/netuid{}/{}".format(
-            config.logging.logging_dir,
+            config.logging.logging_dir,  # TODO: change from ~/.bittensor/miners to ~/.bittensor/neurons
             config.wallet.name,
             config.wallet.hotkey,
             config.netuid,
-            "miner",
+            config.neuron.name,
         )
     )
-    # Ensure the directory for logging exists, else create one.
-    if not os.path.exists(config.full_path):
-        os.makedirs(config.full_path, exist_ok=True)
-    return config
+    print("full path:", full_path)
+    config.neuron.full_path = os.path.expanduser(full_path)
+    if not os.path.exists(config.neuron.full_path):
+        os.makedirs(config.neuron.full_path, exist_ok=True)
+
+    if not config.neuron.dont_save_events:
+        # Add custom event logger for the events.
+        logger.level("EVENTS", no=38, icon="📝")
+        logger.add(
+            os.path.join(config.neuron.full_path, "events.log"),
+            rotation=config.neuron.events_retention_size,
+            serialize=True,
+            enqueue=True,
+            backtrace=False,
+            diagnose=False,
+            level="EVENTS",
+            format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+        )
+
+
+def add_args(cls, parser):
+    """
+    Adds relevant arguments to the parser for operation.
+    """
+
+    parser.add_argument("--netuid", type=int, help="Subnet netuid", default=1)
+
+    parser.add_argument(
+        "--neuron.device",
+        type=str,
+        help="Device to run on.",
+        # default="cuda" if torch.cuda.is_available() else "cpu",
+        default="cpu",
+    )
+
+    parser.add_argument(
+        "--neuron.epoch_length",
+        type=int,
+        help="The default epoch length (how often we set weights, measured in 12 second blocks).",
+        default=100,
+    )
+
+    parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="Mock neuron and all network components.",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--neuron.events_retention_size",
+        type=str,
+        help="Events retention size.",
+        default="2 GB",
+    )
+
+    parser.add_argument(
+        "--neuron.dont_save_events",
+        action="store_true",
+        help="If set, we dont save events to a log file.",
+        default=False,
+    )
+
+    # add miner and validator specific arguments
+    if isinstance(cls, QuantMiner):
+        parser.add_argument(
+            "--neuron.name",
+            type=str,
+            help="Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name. ",
+            default="miner",
+        )
+
+        parser.add_argument(
+            "--blacklist.force_validator_permit",
+            action="store_true",
+            help="If set, we will force incoming requests to have a permit.",
+            default=False,
+        )
+
+        parser.add_argument(
+            "--blacklist.allow_non_registered",
+            action="store_true",
+            help="If set, miners will accept queries from non registered entities. (Dangerous!)",
+            default=False,
+        )
+
+    elif isinstance(cls, QuantValidator):
+        parser.add_argument(
+            "--neuron.name",
+            type=str,
+            help="Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name. ",
+            default="validator",
+        )
+
+        parser.add_argument(
+            "--neuron.timeout",
+            type=float,
+            help="The timeout for each forward call in seconds.",
+            default=10,
+        )
+
+        parser.add_argument(
+            "--neuron.num_concurrent_forwards",
+            type=int,
+            help="The number of concurrent forwards running at any time.",
+            default=1,
+        )
+
+        parser.add_argument(
+            "--neuron.sample_size",
+            type=int,
+            help="The number of miners to query in a single step.",
+            default=50,
+        )
+
+        parser.add_argument(
+            "--neuron.disable_set_weights",
+            action="store_true",
+            help="Disables setting weights.",
+            default=False,
+        )
+
+        parser.add_argument(
+            "--neuron.moving_average_alpha",
+            type=float,
+            help="Moving average alpha parameter, how much to add of the new observation.",
+            default=0.1,
+        )
+
+        parser.add_argument(
+            "--neuron.axon_off",
+            "--axon_off",
+            action="store_true",
+            # Note: the validator needs to serve an Axon with their IP or they may
+            #   be blacklisted by the firewall of serving peers on the network.
+            help="Set this flag to not attempt to serve an Axon.",
+            default=False,
+        )
+
+        parser.add_argument(
+            "--neuron.vpermit_tao_limit",
+            type=int,
+            help="The maximum number of TAO allowed to query a validator with a vpermit.",
+            default=4096,
+        )
+
+        parser.add_argument(
+            "--wandb.project_name",
+            type=str,
+            help="The name of the project where you are sending the new run.",
+            default="template-validators",
+        )
+
+        parser.add_argument(
+            "--wandb.entity",
+            type=str,
+            help="The name of the project where you are sending the new run.",
+            default="opentensor-dev",
+        )
+
+    else:
+        raise TypeError(f'setting config using unknown class {cls.__name__=}')
+
+
+def config(cls):
+    """
+    Returns the configuration object specific to this miner or validator after adding relevant arguments.
+    """
+    parser = argparse.ArgumentParser()
+    bt.wallet.add_args(parser)
+    bt.subtensor.add_args(parser)
+    bt.logging.add_args(parser)
+    bt.axon.add_args(parser)
+    cls.add_args(parser)
+    return bt.config(parser)

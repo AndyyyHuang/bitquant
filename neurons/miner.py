@@ -25,12 +25,12 @@ import bittensor as bt
 import bitquant
 
 # bitquant module:
-from bitquant.data.data_client import DataClient
-from bitquant.quantlib.strategy_engine import StrategyEngine
-from bitquant.quantlib.signal_generation.factor_calculator import FactorCalculator, function_map
-from bitquant.quantlib.signal_generation.factor_selector import FactorSelector
-from bitquant.quantlib.signal_generation.factor_scaler import FactorScaler
-from bitquant.quantlib.signal_generation.factor_aggregator import FactorAggregatorIC
+# from bitquant.data.data_client import DataClient
+# from bitquant.quantlib.strategy_engine import StrategyEngine
+# from bitquant.quantlib.signal_generation.factor_calculator import FactorCalculator, function_map
+# from bitquant.quantlib.signal_generation.factor_selector import FactorSelector
+# from bitquant.quantlib.signal_generation.factor_scaler import FactorScaler
+# from bitquant.quantlib.signal_generation.factor_aggregator import FactorAggregatorIC
 
 # import miner class which takes care of most of the boilerplate
 from bitquant.base.miner import QuantMiner

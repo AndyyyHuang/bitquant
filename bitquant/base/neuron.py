@@ -24,10 +24,10 @@ import bittensor as bt
 from abc import ABC, abstractmethod
 
 # Sync calls set weights and also resyncs the metagraph.
-from template.utils.config import check_config, add_args, config
-from template.utils.misc import ttl_get_block
-from template import __spec_version__ as spec_version
-from template.mock import MockSubtensor, MockMetagraph
+from bitquant.utils.config import check_config, add_args, config
+from bitquant.utils.misc import ttl_get_block
+from bitquant import __spec_version__ as spec_version
+# from template.mock import MockSubtensor, MockMetagraph
 
 
 # TODO cleanup
