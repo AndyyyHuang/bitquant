@@ -84,15 +84,25 @@ class BinanceExchange(BaseAPIHandler):
 
     @classmethod
     def get_symbol_info(cls):
+        def parse_volume_precision(stepSize):
+            if '.' in stepSize and stepSize.split('.')[0] == '0':
+                volume_precision = len(stepSize.split('.')[1])
+            elif '.' in stepSize and stepSize.split('.')[0] != '0':
+                volume_precision = 0
+            else:
+                volume_precision = 0
+            return volume_precision
+
         data = [
             {
                 "symbol": each["symbol"],
                 "contractType": each["contractType"],
                 "status": each["status"],
-                "tickSize": each["filters"][0]["tickSize"],
-                "notional": each["filters"][5]["notional"]
+                "volume_precision": parse_volume_precision(each["filters"][1]["stepSize"]),
+                "notional": float(each["filters"][5]["notional"])
             } for each in cls.get_exchange_info()["symbols"]
         ]
+
         symbol_info = pd.DataFrame(data)
         symbol_info = symbol_info.loc[(symbol_info["contractType"] == "PERPETUAL") & (symbol_info["status"] == "TRADING")]
         return symbol_info

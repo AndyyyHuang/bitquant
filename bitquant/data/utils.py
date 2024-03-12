@@ -20,6 +20,9 @@ class TimeUtils:
     @staticmethod
     def ms_to_timestamp(ms: int) -> datetime:
         return datetime.utcfromtimestamp(ms / 1000).replace(tzinfo=timezone.utc)
+    @staticmethod
+    def timestamp_to_dt_str(dt: datetime, format: str):
+        return datetime.strftime(dt, format)
 
     @staticmethod
     def str_to_timedelta(interval_str: str) -> timedelta:

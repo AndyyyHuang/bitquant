@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class StrategyEngine:
     """
     This is the example Strategy we provide showcase construct portfolio based on multi-factor model
@@ -19,6 +20,10 @@ class StrategyEngine:
 
     def check_delta_neutral(self, portfolio_weight):
         return np.abs(np.sum(portfolio_weight)) < 1e-6
+
+    def check_portfolio_output(self, portfolio_weight):
+        pass
+
 
     def get_score(self, data):
 
@@ -55,14 +60,18 @@ class StrategyEngine:
         long_indices = np.argsort(scores)[-num:]
         short_indices = np.argsort(scores)[:num]
 
-        portfolio_weight[:] = 0
-        portfolio_weight[long_indices] = 0.5 / num
-        portfolio_weight[short_indices] = -0.5 / num
+        portfolio_weight.iloc[:] = 0
+        portfolio_weight.iloc[long_indices] = 0.5 / num
+        portfolio_weight.iloc[short_indices] = -0.5 / num
         """
 
 
         if not self.check_delta_neutral(portfolio_weight):
             raise Exception("Error, not delta neutral")
+
+        # convert it to dict that suits for bitquant.base.protocol.PortfolioRecord.portfolio
+        portfolio_weight = portfolio_weight.to_dict()
+
         return portfolio_weight
 
 

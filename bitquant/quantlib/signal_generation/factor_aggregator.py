@@ -22,7 +22,7 @@ class FactorAggregatorIC:
         factor_ic_df = self.average_IC_combination(scaled_factor_df=scaled_factor_df, target=target, ic_type=self.ic_type)
         score_df = self.calculate_score(scaled_factor_df=scaled_factor_df, factor_ic_df=factor_ic_df,
                                         rolling_window=self.training_window, rolling_type=self.rolling_type)
-        prediction = np.array(score_df.iloc[-1])
+        prediction = score_df.iloc[-1]
         return prediction
 
 
