@@ -8,7 +8,7 @@ import bittensor as bt
 
 from bitquant.base.neuron import BaseNeuron
 from bitquant.base.protocol import StreamingPortfolioHistory, MinerEvaluationWindow
-from bitquant.data.utils import TimeUtils
+from bitquant.utils.timeutils import TimeUtils
 import torch
 
 class QuantValidator(BaseNeuron):

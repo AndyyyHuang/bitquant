@@ -14,7 +14,7 @@ from typing import List, Dict, Tuple, Union, Callable, Awaitable
 
 from bitquant.base.protocol import StreamingPortfolioHistory, PortfolioRecord
 from bitquant.base.neuron import BaseNeuron
-from bitquant.data.utils import TimeUtils
+from bitquant.utils.timeutils import TimeUtils
 
 class QuantMiner(BaseNeuron):
     def __init__(self, config=None):

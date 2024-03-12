@@ -5,7 +5,7 @@ import bittensor as bt
 from starlette.responses import StreamingResponse
 
 from bitquant.base.pair import TRADABLE_PAIRS, Values
-from bitquant.data.utils import TimeUtils
+from bitquant.utils.timeutils import TimeUtils
 
 class SymbolValueDict(dict):
     """

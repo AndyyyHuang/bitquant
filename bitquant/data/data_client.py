@@ -2,7 +2,7 @@ from typing import List, Any, Dict
 import pandas as pd
 import numpy as np
 from bitquant.data.exchange import BinanceExchange, ResponseType
-from bitquant.data.utils import TimeUtils
+from bitquant.utils.timeutils import TimeUtils
 
 
 # TODO: maybe support multiple exchanges
