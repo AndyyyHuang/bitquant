@@ -162,10 +162,10 @@ def _parallel_evolve_3D(n_programs, parents, X, y, sample_weight, seeds, params)
             # Calculate OOB fitness
             program.oob_fitness_ = program.raw_fitness_3D(X, y, oob_sample_weight, rolling_window_1, rolling_window_2, fee)
         print(
-           "\r正在生成表达式{}/{} {:.2f}%".format(len(programs), n_programs, float(len(programs) / n_programs * 100)),
+           "\rGenerating formula expression {}/{} {:.2f}%".format(len(programs), n_programs, float(len(programs) / n_programs * 100)),
            end="")
         programs.append(program)
-    print("  表达式生成完成")
+    print("  Formula expression generation finished")
     return programs
 
 
