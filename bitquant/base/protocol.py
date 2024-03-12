@@ -83,13 +83,6 @@ class MinerEvaluationWindow(BaseModel):
             raise ValueError('end must be greater than start')
         return v
 
-# # need BaseModel to type check
-# class PortfolioModel(BaseModel):
-#     portfolio: Portfolio
-#     timestamp_ms: int
-
-
-
 
 class StreamingTradeHistory(bt.StreamingSynapse):
 
@@ -162,12 +155,3 @@ if __name__ == "__main__":
     import json
     svdict = SymbolValueDict({"BTCUSDT":1})
     PortfolioRecord(svdict=svdict)
-    # m = PortfolioModel(portfolio=p, timestamp_ms=1600203090000)
-    # p = p.update_portfolio({"BTCUSDT":2})
-    # a = p.update_portfolio({"BTCUSDT":2})
-    # print(a)
-    # x = PortfolioModel(portfolio=a, timestamp_ms=1600203090000)
-    # print(x)
-    # print(json.dumps(x))
-
-    # PortfolioModel(portfolio=p)

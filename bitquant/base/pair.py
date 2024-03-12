@@ -1,9 +1,7 @@
 from dataclasses import dataclass, asdict
-from functools import reduce
 from typing import Union, Dict, List, Tuple, Any
 from bitquant.data.data_client import DataClient
 from bitquant.data.exchange import BinanceExchange
-from bitquant.data.utils import TimeUtils
 
 Values = Union[int, float]
 
@@ -54,61 +52,9 @@ TRADABLE_PAIRS = ('BTCUSDT', 'ETHUSDT', 'BCHUSDT', 'XRPUSDT', 'EOSUSDT', 'LTCUSD
                 'DYMUSDT', 'OMUSDT', 'PIXELUSDT', 'STRKUSDT', 'MAVIAUSDT', 'GLMUSDT', 'PORTALUSDT',
                 'TONUSDT', 'AXLUSDT', 'MYROUSDT')
 
-class SymbolValueDict(dict):
-    """
-    Stores the portfolio of current pair holdings
-    SymbolValueDict is meant to be immutable
-    The only method available is update_portfolio() which creates a new SymbolValueDict instance
-
-    Initialization:
-        - SymbolValueDict(values=[-1, 0.5, 0.1, ...])
-            -- values here has to be in the same order as TRADABLE_PAIRS
-        - SymbolValueDict(values=tuple([-1, 0.5, 0.1, ...]))
-            -- values here has to be in the same order as TRADABLE_PAIRS
-        - SymbolValueDict(values={"BTCUSDT": -1, "ETHUSDT": 0.5, ...})
-            -- keys here doesn't have to be in order
-        - SymbolValueDict({})  # creates a SymbolValueDict with
-    """
-    pairs = TRADABLE_PAIRS
-
-    def __init__(self, values: Union[Dict[str, Values], List[Values], Tuple[Values, ...]]):
-        if isinstance(values, dict):
-            if not all((failed_key := k) in self.pairs for k in values.keys()):
-                raise KeyError(f"Key={failed_key} not in TRADABLE_PAIRS")
-            super().__init__({p:values.get(p, 0) for p in self.pairs})
-        elif isinstance(values, (list, tuple)):
-            if len(values) != len(self.pairs):
-                raise IndexError(f"values length has to be the same as length of TRADABLE_PAIRS")
-            super().__init__({p:values[i] for i,p in enumerate(self.pairs)})
-        else:
-            raise TypeError(f"unexpected type {type(values)}")
-
-    def update_portfolio(self, changes:Union[List[Dict], Dict[str, Union[int, float]]]) -> 'SymbolValueDict':
-        if isinstance(changes, dict):
-            return SymbolValueDict({**self, **changes})
-        elif isinstance(changes, list) and all(isinstance(d, dict) for d in changes):
-            return reduce(lambda a,b: a.update(b), [self] + changes)
-        else:
-            raise TypeError("cannot update portfolio with changes")
-
-    def __setitem__(self, __key: Any, __value: Any) -> None:
-        raise AttributeError("SymbolValueDict class is immutable")
-    def __delitem__(self, __key: Any) -> None:
-        raise AttributeError("SymbolValueDict class is immutable")
-
-
-@dataclass(frozen=True)
-class PortfolioRecord:
-    def __init__(self, svdict: SymbolValueDict):
-        self.portfolio = svdict
-        self.timestamp_ms = TimeUtils.now_in_ms()
-
-    def __dict__(self) -> Dict:
-        return asdict(self)
-
 
 if __name__ == "__main__":
     ...
     # print(get_available_pairs(BinanceExchange))
-    a = SymbolValueDict({})
-    print(a)
+    # a = SymbolValueDict({})
+    # print(a)
