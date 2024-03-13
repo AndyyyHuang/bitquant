@@ -5,7 +5,7 @@ import bittensor as bt
 from starlette.responses import StreamingResponse
 
 from bitquant.base.pair import TRADABLE_PAIRS, Values
-from bitquant.data.utils import TimeUtils
+from bitquant.utils.timeutils import TimeUtils
 
 class SymbolValueDict(dict):
     """
@@ -54,14 +54,18 @@ class PortfolioRecord(BaseModel):
     portfolio: SymbolValueDict
     timestamp_ms: int = TimeUtils.now_in_ms()
 
-    def __init__(self, svdict: SymbolValueDict):
-        super().__init__(portfolio=svdict)
-
     def to_dict(self) -> Dict[str, Union[SymbolValueDict, int]]:
         return {
             'portfolio': self.portfolio,
             'timestamp_ms': self.timestamp_ms
         }
+
+    @classmethod
+    def from_dict(cls, json_data: Dict) -> "PortfolioRecord":
+        return cls(
+            portfolio=json_data['portfolio'],
+            timestamp_ms=json_data['timestamp_ms']
+        )
 
     # HACK figure out why type checking is not happening automatically
     @validator('portfolio', pre=True)
@@ -83,15 +87,8 @@ class MinerEvaluationWindow(BaseModel):
             raise ValueError('end must be greater than start')
         return v
 
-# # need BaseModel to type check
-# class PortfolioModel(BaseModel):
-#     portfolio: Portfolio
-#     timestamp_ms: int
 
-
-
-
-class StreamingTradeHistory(bt.StreamingSynapse):
+class StreamingPortfolioHistory(bt.StreamingSynapse):
 
     miner_window: MinerEvaluationWindow = Field(..., allow_mutation=False)
     portfolio_history: List[PortfolioRecord] = Field(default_factory=list(), allow_mutation=True)
@@ -118,17 +115,24 @@ class StreamingTradeHistory(bt.StreamingSynapse):
 
     # TODO unsure about this
     async def process_streaming_response(self, response: StreamingResponse) -> AsyncIterator[PortfolioRecord]:
+        # NOTE: this should be the same as default factory
         # if self.trade_history is None:
             # self.trade_history = []
 
         try:
            async for chunk in response.content.iter_any():
-                # bytes -> string
-                chunk - chunk.decode("utf-8")
+                bt.logging.debug(f"Processing chunk: {chunk}")
+                # bytes -> string -> dict -> PortfolioRecord
+                chunk = chunk.decode("utf-8")
+                record = PortfolioRecord.from_dict(json.loads(chunk))
+
+                # add it to history
+                self.portfolio_history.append(record)
+
+                # TODO where is this yielded to?
+                yield record
 
                 ...
-
-
         except ValidationError:
             ...
 
@@ -162,12 +166,3 @@ if __name__ == "__main__":
     import json
     svdict = SymbolValueDict({"BTCUSDT":1})
     PortfolioRecord(svdict=svdict)
-    # m = PortfolioModel(portfolio=p, timestamp_ms=1600203090000)
-    # p = p.update_portfolio({"BTCUSDT":2})
-    # a = p.update_portfolio({"BTCUSDT":2})
-    # print(a)
-    # x = PortfolioModel(portfolio=a, timestamp_ms=1600203090000)
-    # print(x)
-    # print(json.dumps(x))
-
-    # PortfolioModel(portfolio=p)

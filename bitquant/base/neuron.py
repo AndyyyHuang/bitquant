@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import copy
-import typing
+import torch
 import threading
 
 import bittensor as bt
@@ -24,10 +24,10 @@ import bittensor as bt
 from abc import ABC, abstractmethod
 
 # Sync calls set weights and also resyncs the metagraph.
-from template.utils.config import check_config, add_args, config
-from template.utils.misc import ttl_get_block
-from template import __spec_version__ as spec_version
-from template.mock import MockSubtensor, MockMetagraph
+from bitquant.utils.config import check_config, add_args, config
+from bitquant.utils.misc import ttl_get_block
+from bitquant import __spec_version__ as spec_version
+# from template.mock import MockSubtensor, MockMetagraph
 
 
 # TODO cleanup
@@ -41,26 +41,29 @@ class BaseNeuron(ABC):
         check_config(cls, config)
 
     @classmethod
-    def add_args(cls, parser):
-        add_args(cls, parser)
+    def add_args(cls, parser, neuron_type):
+        add_args(cls, parser, neuron_type)
 
     @classmethod
-    def config(cls):
-        return config(cls)
+    def config(cls, neuron_type):
+        return config(cls, neuron_type)
 
     subtensor: "bt.subtensor"
     wallet: "bt.wallet"
     metagraph: "bt.metagraph"
     spec_version: int = spec_version
 
+    # validator only attribute
+    scores: torch.Tensor
+
     @property
     def block(self):
         return ttl_get_block(self)
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, neuron_type=None):
         # Set up logging with the provided configuration and directory.
-        base_config = copy.deepcopy(config or BaseNeuron.config())
-        self.config = self.config()
+        base_config = copy.deepcopy(config or BaseNeuron.config(neuron_type))
+        self.config = self.config(neuron_type=neuron_type)
         self.config.merge(base_config)
         self.check_config(self.config)
         bt.logging(config=self.config, logging_dir=self.config.full_path)
@@ -137,13 +140,85 @@ class BaseNeuron(ABC):
             self.block - self.metagraph.last_update[self.uid]
         ) > self.config.neuron.epoch_length
 
+    def resync_metagraph(self):
+        """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
+        bt.logging.info("resync_metagraph()")
+
+        # Sync the metagraph.
+        self.metagraph.sync(subtensor=self.subtensor)
+
+    def should_set_weights(self) -> bool:
+        # don't set weights on initialization or if disabled
+        if self.step == 0 or self.config.neuron.disable_set_weights:
+            return False
+
+        # check if enough epoch blocks have elapsed since the last epoch.
+        return (
+            (self.block - self.metagraph.last_update[self.uid])
+            > self.config.neuron.epoch_length
+            )  # don't set weights if you're a miner
+
+    # TODO review
+    def set_weights(self):
+        """
+        Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
+        """
+
+        # Check if self.scores contains any NaN values and log a warning if it does.
+        if torch.isnan(self.scores).any():
+            bt.logging.warning(
+                f"Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions."
+            )
+
+        # Calculate the average reward for each uid across non-zero values.
+        # Replace any NaN values with 0.
+        raw_weights = torch.nn.functional.normalize(self.scores, p=1, dim=0)
+
+        bt.logging.debug("raw_weights", raw_weights)
+        bt.logging.debug("raw_weight_uids", self.metagraph.uids.to("cpu"))
+        # Process the raw weights to final_weights via subtensor limitations.
+        (
+            processed_weight_uids,
+            processed_weights,
+        ) = bt.utils.weight_utils.process_weights_for_netuid(
+            uids=self.metagraph.uids.to("cpu"),
+            weights=raw_weights.to("cpu"),
+            netuid=self.config.netuid,
+            subtensor=self.subtensor,
+            metagraph=self.metagraph,
+        )
+        bt.logging.debug("processed_weights", processed_weights)
+        bt.logging.debug("processed_weight_uids", processed_weight_uids)
+
+        # Convert to uint16 weights and uids.
+        (
+            uint_uids,
+            uint_weights,
+        ) = bt.utils.weight_utils.convert_weights_and_uids_for_emit(
+            uids=processed_weight_uids, weights=processed_weights
+        )
+        bt.logging.debug("uint_weights", uint_weights)
+        bt.logging.debug("uint_uids", uint_uids)
+
+        # Set the weights on chain via our subtensor connection.
+        result = self.subtensor.set_weights(
+            wallet=self.wallet,
+            netuid=self.config.netuid,
+            uids=uint_uids,
+            weights=uint_weights,
+            wait_for_finalization=False,
+            wait_for_inclusion=False,
+            version_key=self.spec_version,
+        )
+        bt.logging.info(f"Set weights: {result}")
+
     def run_in_background_thread(self):
         """
         Starts the neuron's operations in a separate background thread.
         This is useful for non-blocking operations.
         """
         if not self.is_running:
-            bt.logging.debug(f"Starting {self.__name__} in background thread.")
+            bt.logging.debug(f"Starting {type(self).__name__} in background thread.")
             self.should_exit = False
             self.thread = threading.Thread(target=self.run, daemon=True)
             self.thread.start()
@@ -155,7 +230,7 @@ class BaseNeuron(ABC):
         Stops the neuron's operations that are running in the background thread.
         """
         if self.is_running:
-            bt.logging.debug(f"Stopping {self.__name__} in background thread.")
+            bt.logging.debug(f"Stopping {type(self).__name__} in background thread.")
             self.should_exit = True
             self.thread.join(5)
             self.is_running = False
@@ -179,7 +254,7 @@ class BaseNeuron(ABC):
                        None if the context was exited without an exception.
         """
         if self.is_running:
-            bt.logging.debug(f"Stopping {self.__name__} in background thread.")
+            bt.logging.debug(f"Stopping {type(self).__name__} in background thread.")
             self.should_exit = True
             self.thread.join(5)
             self.is_running = False

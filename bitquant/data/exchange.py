@@ -7,7 +7,7 @@ import requests
 import asyncio
 import aiohttp
 import traceback
-from bitquant.data.utils import TimeUtils
+from bitquant.utils.timeutils import TimeUtils
 
 
 # https://api.mexc.com/api/v3/klines?symbol=FORTHUSDT&interval=60m&limit=3

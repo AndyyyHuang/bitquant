@@ -7,15 +7,16 @@ from typing import List
 import bittensor as bt
 
 from bitquant.base.neuron import BaseNeuron
-from bitquant.base.protocol import StreamingTradeHistory, MinerEvaluationWindow
+from bitquant.base.protocol import StreamingPortfolioHistory, MinerEvaluationWindow
+from bitquant.utils.timeutils import TimeUtils
 import torch
 
 class QuantValidator(BaseNeuron):
-    def __init__(self, evaluation_window:int, evaluator):
+    def __init__(self, evaluation_window:int, evaluator, config=None):
         self.evaluation_window = evaluation_window
         self.evaluator = evaluator
         # initiate neuron
-        super().__init__(config=self.config())
+        super().__init__(config, type(self).__name__)
 
         # Save a copy of the hotkeys to local memory.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
@@ -70,72 +71,6 @@ class QuantValidator(BaseNeuron):
             pass
 
 
-    # TODO this was in neuron before. Should this be in validator?
-    def should_set_weights(self) -> bool:
-        # don't set weights on initialization or if disabled
-        if self.step == 0 or self.config.neuron.disable_set_weights:
-            return False
-
-        # check if enough epoch blocks have elapsed since the last epoch.
-        return (
-            (self.block - self.metagraph.last_update[self.uid])
-            > self.config.neuron.epoch_length
-            )  # don't set weights if you're a miner
-
-    # TODO review
-    def set_weights(self):
-        """
-        Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
-        """
-
-        # Check if self.scores contains any NaN values and log a warning if it does.
-        if torch.isnan(self.scores).any():
-            bt.logging.warning(
-                f"Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions."
-            )
-
-        # Calculate the average reward for each uid across non-zero values.
-        # Replace any NaN values with 0.
-        raw_weights = torch.nn.functional.normalize(self.scores, p=1, dim=0)
-
-        bt.logging.debug("raw_weights", raw_weights)
-        bt.logging.debug("raw_weight_uids", self.metagraph.uids.to("cpu"))
-        # Process the raw weights to final_weights via subtensor limitations.
-        (
-            processed_weight_uids,
-            processed_weights,
-        ) = bt.utils.weight_utils.process_weights_for_netuid(
-            uids=self.metagraph.uids.to("cpu"),
-            weights=raw_weights.to("cpu"),
-            netuid=self.config.netuid,
-            subtensor=self.subtensor,
-            metagraph=self.metagraph,
-        )
-        bt.logging.debug("processed_weights", processed_weights)
-        bt.logging.debug("processed_weight_uids", processed_weight_uids)
-
-        # Convert to uint16 weights and uids.
-        (
-            uint_uids,
-            uint_weights,
-        ) = bt.utils.weight_utils.convert_weights_and_uids_for_emit(
-            uids=processed_weight_uids, weights=processed_weights
-        )
-        bt.logging.debug("uint_weights", uint_weights)
-        bt.logging.debug("uint_uids", uint_uids)
-
-        # Set the weights on chain via our subtensor connection.
-        result = self.subtensor.set_weights(
-            wallet=self.wallet,
-            netuid=self.config.netuid,
-            uids=uint_uids,
-            weights=uint_weights,
-            wait_for_finalization=False,
-            wait_for_inclusion=False,
-            version_key=self.spec_version,
-        )
-        bt.logging.info(f"Set weights: {result}")
-
     # TODO review
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
@@ -145,7 +80,7 @@ class QuantValidator(BaseNeuron):
         previous_metagraph = copy.deepcopy(self.metagraph)
 
         # Sync the metagraph.
-        self.metagraph.sync(subtensor=self.subtensor)
+        super().resync_metagraph()
 
         # Check if the metagraph axon info has changed.
         if previous_metagraph.axons == self.metagraph.axons:
@@ -222,10 +157,14 @@ class QuantValidator(BaseNeuron):
         - Updating the scores
         """
         try:
-            miner_window = MinerEvaluationWindow(start=self.block, end=self.block + self.evaluation_window)
-            syn = StreamingTradeHistory(miner_window=miner_window)
+            now = TimeUtils.now_in_ms()
+            miner_window = MinerEvaluationWindow(
+                start=now,
+                end=now + self.evaluation_window)
+            syn = StreamingPortfolioHistory(miner_window=miner_window)
 
             # miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
+            miner_uids = [1]
 
             # search_query = SearchSynapse(
             #     query_string=query_string,
@@ -240,7 +179,7 @@ class QuantValidator(BaseNeuron):
             # The dendrite client queries the network.
             responses = await self.dendrite(
                 # Send the query to selected miner axons in the network.
-                # axons=[self.metagraph.axons[uid] for uid in miner_uids],
+                axons=[self.metagraph.axons[uid] for uid in miner_uids],
                 synapse=syn,
 
                 # TODO check deserialize
@@ -253,6 +192,10 @@ class QuantValidator(BaseNeuron):
                 # timeout=120,
                 timeout=float('inf'),
             )
+
+            for resp in responses:
+                async for chunk in resp:
+                    print(chunk)
 
             # Log the results for monitoring purposes.
             bt.logging.info(f"Received responses: {responses}")
