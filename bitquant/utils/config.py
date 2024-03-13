@@ -81,7 +81,6 @@ def add_args(cls, parser, neuron_type):
     )
 
     # add miner and validator specific arguments
-    print(cls.__name__)
     if neuron_type == 'QuantMiner':
         parser.add_argument(
             "--neuron.name",

@@ -230,7 +230,7 @@ class QuantValidator(BaseNeuron):
             syn = StreamingPortfolioHistory(miner_window=miner_window)
 
             # miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
-            miner_uids = [20]
+            miner_uids = [1]
 
             # search_query = SearchSynapse(
             #     query_string=query_string,
