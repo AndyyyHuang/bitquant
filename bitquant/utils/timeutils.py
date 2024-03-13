@@ -36,6 +36,7 @@ class TimeUtils:
     def timedelta_to_ms(delta: timedelta) -> int:
         return int(delta.total_seconds() * 1000)
 
+
     @staticmethod
     def interval_str_to_ms(interval_str: str) -> int:
         units = {'s': 'seconds', 'm': 'minutes', 'h': 'hours', 'd': 'days'}

@@ -13,7 +13,7 @@ def test():
 
 
     symbols = ["ETHUSDT", "BTCUSDT", "BNBUSDT", "SOLUSDT"]
-    interval = "1h"
+    interval = "30m"
     st = "2024-01-01 00:00:00"
     et = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     data_client = DataClient(BinanceExchange)
@@ -34,6 +34,7 @@ def test():
     factor_aggregator.train()
     predictions = factor_aggregator.predict(scaled_factor_df=scaled_factor_df, target=target)
     print(predictions)
+
 
 if __name__ == "__main__":
     test()
