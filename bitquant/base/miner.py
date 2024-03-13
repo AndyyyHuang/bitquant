@@ -113,50 +113,70 @@ class QuantMiner(BaseNeuron):
         self.last_epoch_block = self.subtensor.get_current_block()
         bt.logging.info(f"Miner starting at block: {self.last_epoch_block}")
 
-        # run main loop
-        bt.logging.info(f"Starting main loop")
-        step = 0
+
+        # This loop maintains the miner's operations until intentionally stopped.
         try:
             while not self.should_exit:
-                _start_epoch = time.time()
-
-                # --- Wait until next epoch.
-                current_block = self.subtensor.get_current_block()
                 while (
-                    current_block - self.last_epoch_block
-                    < self.config.miner.blocks_per_epoch
+                    self.block - self.metagraph.last_update[self.uid]
+                    < self.config.neuron.epoch_length
                 ):
-                    # --- Wait for next bloc.
+                    # Wait before checking again.
                     time.sleep(1)
-                    current_block = self.subtensor.get_current_block()
 
-                    # --- Check if we should exit.
+                    # Check if we should exit.
                     if self.should_exit:
                         break
 
-                # --- Update the metagraph with the latest network state.
-                self.last_epoch_block = self.subtensor.get_current_block()
+                # Sync metagraph and potentially set weights.
+                self.sync()
+                self.step += 1
 
-                metagraph = self.subtensor.metagraph(
-                    netuid=self.config.netuid,
-                    lite=True,
-                    block=self.last_epoch_block,
-                )
-                log = (
-                    f"Step:{step} | "
-                    f"Block:{metagraph.block.item()} | "
-                    f"Stake:{metagraph.S[self.my_subnet_uid]} | "
-                    f"Rank:{metagraph.R[self.my_subnet_uid]} | "
-                    f"Trust:{metagraph.T[self.my_subnet_uid]} | "
-                    f"Consensus:{metagraph.C[self.my_subnet_uid] } | "
-                    f"Incentive:{metagraph.I[self.my_subnet_uid]} | "
-                    f"Emission:{metagraph.E[self.my_subnet_uid]}"
-                )
-                bt.logging.info(log)
 
-                step += 1
+        # # run main loop
+        # bt.logging.info(f"Starting main loop")
+        # step = 0
+        # try:
+        #     while not self.should_exit:
+        #         _start_epoch = time.time()
 
+        #         # --- Wait until next epoch.
+        #         current_block = self.subtensor.get_current_block()
+        #         while (
+        #             current_block - self.last_epoch_block
+        #             < self.config.miner.blocks_per_epoch
+        #         ):
+        #             # --- Wait for next bloc.
+        #             time.sleep(1)
+        #             current_block = self.subtensor.get_current_block()
+
+        #             # --- Check if we should exit.
+        #             if self.should_exit:
+        #                 break
+
+        #         # --- Update the metagraph with the latest network state.
+        #         self.last_epoch_block = self.subtensor.get_current_block()
+
+        #         metagraph = self.subtensor.metagraph(
+        #             netuid=self.config.netuid,
+        #             lite=True,
+        #             block=self.last_epoch_block,
+        #         )
+        #         log = (
+        #             f"Step:{step} | "
+        #             f"Block:{metagraph.block.item()} | "
+        #             f"Stake:{metagraph.S[self.my_subnet_uid]} | "
+        #             f"Rank:{metagraph.R[self.my_subnet_uid]} | "
+        #             f"Trust:{metagraph.T[self.my_subnet_uid]} | "
+        #             f"Consensus:{metagraph.C[self.my_subnet_uid] } | "
+        #             f"Incentive:{metagraph.I[self.my_subnet_uid]} | "
+        #             f"Emission:{metagraph.E[self.my_subnet_uid]}"
+        #         )
+        #         bt.logging.info(log)
+
+        #         step += 1
         # If someone intentionally stops the miner, it'll safely terminate operations.
+
         except KeyboardInterrupt:
             self.axon.stop()
             bt.logging.success("Miner killed by keyboard interrupt.")
