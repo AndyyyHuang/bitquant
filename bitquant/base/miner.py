@@ -61,6 +61,9 @@ class QuantMiner(BaseNeuron):
         thread = threading.Thread(target=get_valid_hotkeys, args=(self.config,))
         '''
 
+    def should_set_weights(self):
+        return False
+
     def forward(self, synapse: StreamingPortfolioHistory) -> StreamingPortfolioHistory:
         start_time = synapse.miner_window.start_ms
         end_time = synapse.miner_window.end_ms
