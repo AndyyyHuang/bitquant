@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from datetime import datetime
+from bitquant.data.exchange import BinanceExchange
 from bitquant.data.data_client import DataClient
 from bitquant.quantlib.factor_mining.genetic_programming.genetic import SymbolicTransformer
 from bitquant.quantlib.functions.functions import *
@@ -29,9 +30,8 @@ if __name__ == "__main__":
     interval = "1h"
     st = "2024-01-01 00:00:00"
     et = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    data_client = DataClient(exchange_name="BINANCE")
-    aggregated_kline = data_client.get_aggregated_symbols_kline(symbol_lis=symbol_lis, interval=interval, st=st, et=et)
-    data = data_client.process_aggregated_symbols_kline(aggregated_kline)
+    data_client = DataClient(BinanceExchange)
+    symbol_info, data = data_client.run(symbol_lis, interval, st, et)
 
     different_axis = ['ts', 'symbol', 'return_1']
     X, Y, feature_names = make_XY(data, *different_axis)
