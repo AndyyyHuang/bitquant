@@ -33,13 +33,18 @@ import bitquant
 # from bitquant.quantlib.signal_generation.factor_aggregator import FactorAggregatorIC
 
 # import miner class which takes care of most of the boilerplate
+from bitquant.base.protocol import PortfolioRecord, SymbolValueDict
 from bitquant.base.miner import QuantMiner
 
 def run_miner():
     with QuantMiner() as miner:
         bt.logging.info("Miner running...", time.time())
-        time.sleep(200)
-        # miner.portfolio.append()
+        while True:
+            svdict = SymbolValueDict({"BTCUSDT": 4})
+            record = PortfolioRecord(svdict)
+            miner.portfolio.append(record)
+            bt.logging.debug(f"{miner.portfolio=}")
+            time.sleep(10)
 
 
 

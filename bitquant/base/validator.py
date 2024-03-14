@@ -181,7 +181,8 @@ class QuantValidator(BaseNeuron):
             # The dendrite client queries the network.
             responses = await self.dendrite(
                 # Send the query to selected miner axons in the network.
-                axons=[self.metagraph.axons[uid] for uid in miner_uids],
+                # axons=[self.metagraph.axons[uid] for uid in miner_uids],
+                axons=list(self.metagraph.axons),
                 synapse=synapse,
 
                 # TODO check deserialize
