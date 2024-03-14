@@ -1,6 +1,7 @@
 import copy
 import asyncio
 import threading
+from pathlib import Path
 from traceback import print_exception
 from typing import List
 
@@ -29,7 +30,7 @@ class QuantValidator(BaseNeuron):
         bt.logging.info("Building validation weights.")
         self.scores = torch.zeros_like(self.metagraph.S, dtype=torch.float32)
 
-        self.load_state()
+        # self.load_state()
 
         # Init sync with the network. Updates the metagraph.
         self.sync()
@@ -290,6 +291,9 @@ class QuantValidator(BaseNeuron):
     def load_state(self):
         """Loads the state of the validator from a file."""
         bt.logging.info("Loading validator state.")
+
+        if not Path(self.config.neuron.full_path + "/state.pt").exists():
+            return False
 
         # Load the state of the validator from file.
         state = torch.load(self.config.neuron.full_path + "/state.pt")
