@@ -31,7 +31,7 @@ class QuantMiner(BaseNeuron):
                 "You are allowing non-registered entities to send requests to your miner. This is a security risk."
             )
 
-        self.axon = bt.axon(wallet=self.wallet, config=self.config)
+        self.axon = bt.axon(wallet=self.wallet, config=self.config, port=self.config.axon.port)
         # self.axon = bt.axon(
         #     wallet=self.wallet, port=self.config.axon.port
         # )
