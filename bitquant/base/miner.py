@@ -117,7 +117,7 @@ class QuantMiner(BaseNeuron):
         bt.logging.info(
             f"Serving axon {StreamingPortfolioHistory} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
         )
-        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor, port=self.config.axon.port)
+        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
 
         bt.logging.info(
             f"Starting axon server on port: {self.config.axon.port}"
