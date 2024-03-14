@@ -91,7 +91,7 @@ class QuantMiner(BaseNeuron):
             while t_now <= end_time:
                 # select lastest portfolio and send package
                 portfolio = self.portfolio[-1]
-                portfolio = json.dumps(portfolio).encode('utf-8')
+                portfolio = json.dumps(portfolio.to_dict()).encode('utf-8')
                 bt.logging.debug(f"sending {portfolio=}")
                 await send(
                     {

@@ -35,13 +35,14 @@ import bitquant
 # import miner class which takes care of most of the boilerplate
 from bitquant.base.protocol import PortfolioRecord, SymbolValueDict
 from bitquant.base.miner import QuantMiner
+from bitquant.utils.timeutils import TimeUtils
 
 def run_miner():
     with QuantMiner() as miner:
         bt.logging.info("Miner running...", time.time())
         while True:
             svdict = SymbolValueDict({"BTCUSDT": 4})
-            record = PortfolioRecord(svdict)
+            record = PortfolioRecord(portfolio=svdict)
             miner.portfolio.append(record)
             bt.logging.debug(f"{miner.portfolio=}")
             time.sleep(10)
