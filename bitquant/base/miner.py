@@ -79,6 +79,7 @@ class QuantMiner(BaseNeuron):
         # create lazy stream function to stream new portfolio updates within start_time and end_time
         # TODO not sure this is right
         async def _stream(start_time: int, end_time: int, send: Send):
+            bt.logging.debug(f"miner entering stream")
             t_now = TimeUtils.now_in_ms()
             assert t_now >= start_time, f"{self.block=}, {start_time=}"
 
@@ -86,6 +87,7 @@ class QuantMiner(BaseNeuron):
             if not self.portfolio:
                 self.portfolio.append(PortfolioRecord({}))
 
+            bt.logging.debug(f"preparing portfolio")
             while t_now <= end_time:
                 # select lastest portfolio and send package
                 portfolio = self.portfolio[-1]
@@ -115,7 +117,7 @@ class QuantMiner(BaseNeuron):
         bt.logging.info(
             f"Serving axon {StreamingPortfolioHistory} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
         )
-        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
+        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor, port=self.config.axon.port)
 
         bt.logging.info(
             f"Starting axon server on port: {self.config.axon.port}"

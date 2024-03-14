@@ -163,7 +163,7 @@ class QuantValidator(BaseNeuron):
             miner_window = MinerEvaluationWindow(
                 start_ms=now,
                 end_ms=now + self.evaluation_window)
-            syn = StreamingPortfolioHistory(miner_window=miner_window)
+            synapse = StreamingPortfolioHistory(miner_window=miner_window)
 
             # miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
             miner_uids = [1]
@@ -182,7 +182,7 @@ class QuantValidator(BaseNeuron):
             responses = await self.dendrite(
                 # Send the query to selected miner axons in the network.
                 axons=[self.metagraph.axons[uid] for uid in miner_uids],
-                synapse=syn,
+                synapse=synapse,
 
                 # TODO check deserialize
                 # deserialize=True,
