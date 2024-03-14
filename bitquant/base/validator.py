@@ -146,6 +146,17 @@ class QuantValidator(BaseNeuron):
             self.config.neuron.full_path + "/state.pt",
         )
 
+    def check_uid_availability(self, uid: int, vpermit_tao_limit: int) -> bool:
+        # Filter non serving axons.
+        if not self.metagraph.axons[uid].is_serving:
+            return False
+        # Filter validator permit > 1024 stake.
+        if self.metagraph.validator_permit[uid]:
+            if self.metagraph.S[uid] > vpermit_tao_limit:
+                return False
+        # Available otherwise.
+        return True
+
     # ===== main functions =====
     # TODO update
     async def forward(self):
@@ -167,6 +178,8 @@ class QuantValidator(BaseNeuron):
 
             # miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
             miner_uids = [1]
+            for i in [0,1]:
+                bt.logging.info("availability:", i, self.check_uid_availability(i))
 
             # search_query = SearchSynapse(
             #     query_string=query_string,
@@ -181,8 +194,8 @@ class QuantValidator(BaseNeuron):
             # The dendrite client queries the network.
             responses = await self.dendrite(
                 # Send the query to selected miner axons in the network.
-                # axons=[self.metagraph.axons[uid] for uid in miner_uids],
-                axons=list(self.metagraph.axons),
+                axons=[self.metagraph.axons[uid] for uid in miner_uids],
+                # axons=list(self.metagraph.axons),
                 synapse=synapse,
 
                 # TODO check deserialize
@@ -193,7 +206,7 @@ class QuantValidator(BaseNeuron):
                 # TODO lol
                 # set the miner query timeout to be 120 seconds to allow more operations in miner
                 # timeout=120,
-                timeout=float('inf'),
+                timeout=float(120),
             )
 
             for resp in responses:
@@ -202,6 +215,7 @@ class QuantValidator(BaseNeuron):
 
             # Log the results for monitoring purposes.
             bt.logging.info(f"Received responses: {responses}")
+            bt.logging.debug(f"{type(responses)=} {len(responses)=}")
 
             # rewards = self.evaluator.evaluate(
             #     search_query.query_string, search_query.size, responses

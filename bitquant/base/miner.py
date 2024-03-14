@@ -55,7 +55,7 @@ class QuantMiner(BaseNeuron):
         self.lock = asyncio.Lock()
 
         # istantiate miner data
-        self.portfolio = []
+        self.portfolio: List[PortfolioRecord] = []
         '''
         self.request_timestamps: dict = {}
         thread = threading.Thread(target=get_valid_hotkeys, args=(self.config,))
@@ -92,7 +92,7 @@ class QuantMiner(BaseNeuron):
                 # select lastest portfolio and send package
                 portfolio = self.portfolio[-1]
                 portfolio = json.dumps(portfolio.to_dict()).encode('utf-8')
-                bt.logging.debug(f"sending {portfolio=}")
+                bt.logging.debug(f"sending {portfolio[-1]=}")
                 await send(
                     {
                         "type": "http.response.body",

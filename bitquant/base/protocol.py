@@ -111,10 +111,12 @@ class StreamingPortfolioHistory(bt.StreamingSynapse):
 
 
     def deserialize(self) -> List[PortfolioRecord]:
+        bt.logging.debug(f"StreamingPortfolioHistory.deserialize()")
         return self.portfolio_history
 
     # TODO unsure about this
     async def process_streaming_response(self, response: StreamingResponse) -> AsyncIterator[PortfolioRecord]:
+        bt.logging.debug(f"StreamingPortfolioHistory.process_streaming_response()")
         # NOTE: this should be the same as default factory
         # if self.trade_history is None:
             # self.trade_history = []
@@ -139,6 +141,7 @@ class StreamingPortfolioHistory(bt.StreamingSynapse):
 
     # TODO unsure about this
     def extract_response_json(self, response: StreamingResponse) -> dict:
+        bt.logging.debug(f"StreamingPortfolioHistory.extract_response_json()")
         headers = {
             k.decode("utf-8"): v.decode("utf-8")
             for k, v in response.__dict__["_raw_headers"]

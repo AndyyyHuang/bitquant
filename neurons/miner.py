@@ -44,7 +44,6 @@ def run_miner():
             svdict = SymbolValueDict({"BTCUSDT": 4})
             record = PortfolioRecord(portfolio=svdict)
             miner.portfolio.append(record)
-            bt.logging.debug(f"{miner.portfolio=}")
             time.sleep(10)
 
 
