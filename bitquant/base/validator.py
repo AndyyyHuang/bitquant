@@ -71,7 +71,6 @@ class QuantValidator(BaseNeuron):
             pass
 
 
-    # TODO review
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
         bt.logging.info("resync_metagraph()")
@@ -146,6 +145,7 @@ class QuantValidator(BaseNeuron):
             self.config.neuron.full_path + "/state.pt",
         )
 
+    # ===== main functions =====
     # TODO update
     async def forward(self):
         """
@@ -156,6 +156,7 @@ class QuantValidator(BaseNeuron):
         - Rewarding the miners
         - Updating the scores
         """
+        bt.logging.debug(f"validator forwarding")
         try:
             now = TimeUtils.now_in_ms()
             miner_window = MinerEvaluationWindow(
@@ -270,6 +271,8 @@ class QuantValidator(BaseNeuron):
             bt.logging.error("Error during validation", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
 
+    # ===== state functions ======
+
     def save_state(self):
         """Saves the state of the validator to a file."""
         bt.logging.info("Saving validator state.")
@@ -296,7 +299,7 @@ class QuantValidator(BaseNeuron):
 
         bt.logging.info(f"Loaded state: Step: {self.step}, Scores: {self.scores}, Hotkeys: {self.hotkeys}")
 
-    def print_info(self):
+    def print_state(self):
         metagraph = self.metagraph
         self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
 

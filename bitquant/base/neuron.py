@@ -90,6 +90,8 @@ class BaseNeuron(ABC):
         )
         self.step = 0
 
+    # ====== main functions ======
+
     @abstractmethod
     async def forward(self, synapse: bt.Synapse) -> bt.Synapse:
         ...
@@ -97,6 +99,8 @@ class BaseNeuron(ABC):
     @abstractmethod
     def run(self):
         ...
+
+    # ====== sync functions ======
 
     def sync(self):
         """
@@ -116,7 +120,6 @@ class BaseNeuron(ABC):
 
     # TODO are these two checks duplicated?
     def check_registered(self):
-        # TODO better error messages
         # check if wallet is registered
         if self.wallet.hotkey.ss58_address not in self.metagraph.hotkeys:
             bt.logging.error(
@@ -212,6 +215,8 @@ class BaseNeuron(ABC):
         )
         bt.logging.info(f"Set weights: {result}")
 
+    # ====== runner functions ======
+
     def run_in_background_thread(self):
         """
         Starts the neuron's operations in a separate background thread.
@@ -259,6 +264,8 @@ class BaseNeuron(ABC):
             self.thread.join(5)
             self.is_running = False
             bt.logging.debug("Stopped")
+
+    # ====== state functions ======
 
     def save_state(self):
         bt.logging.warning(

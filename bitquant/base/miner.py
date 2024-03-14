@@ -61,10 +61,18 @@ class QuantMiner(BaseNeuron):
         thread = threading.Thread(target=get_valid_hotkeys, args=(self.config,))
         '''
 
+    # ===== override BaseNeuron functions =====
+
     def should_set_weights(self):
         return False
 
+    def save_state(self):
+        pass
+
+    # ===== main functions =====
+
     def forward(self, synapse: StreamingPortfolioHistory) -> StreamingPortfolioHistory:
+        bt.logging.debug(f"miner forwarding {synapse.miner_window=}")
         start_time = synapse.miner_window.start_ms
         end_time = synapse.miner_window.end_ms
 
@@ -82,6 +90,7 @@ class QuantMiner(BaseNeuron):
                 # select lastest portfolio and send package
                 portfolio = self.portfolio[-1]
                 portfolio = json.dumps(portfolio).encode('utf-8')
+                bt.logging.debug(f"sending {portfolio=}")
                 await send(
                     {
                         "type": "http.response.body",

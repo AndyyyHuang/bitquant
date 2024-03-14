@@ -37,11 +37,12 @@ def check_config(cls, config: "bt.Config"):
         )
 
 
-def add_args(cls, parser, neuron_type):
+def add_args(cls, parser: argparse.ArgumentParser, neuron_type):
     """
     Adds relevant arguments to the parser for operation.
     """
 
+    # TODO change default to our subnet
     parser.add_argument("--netuid", type=int, help="Subnet netuid", default=1)
 
     parser.add_argument(
