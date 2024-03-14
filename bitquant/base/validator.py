@@ -161,8 +161,8 @@ class QuantValidator(BaseNeuron):
         try:
             now = TimeUtils.now_in_ms()
             miner_window = MinerEvaluationWindow(
-                start=now,
-                end=now + self.evaluation_window)
+                start_ms=now,
+                end_ms=now + self.evaluation_window)
             syn = StreamingPortfolioHistory(miner_window=miner_window)
 
             # miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
