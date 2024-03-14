@@ -67,7 +67,7 @@ class FactorAggregatorIC:
 
     def calculate_score(self, scaled_factor_df, factor_ic_df, rolling_window, rolling_type):
 
-        factor_ic_df = factor_ic_df.shift(1).bfill()
+        factor_ic_df = factor_ic_df.shift(1).bfill().fillna(0)
 
         if rolling_type == 'ewm' and rolling_window != 1:
             self.factor_ic_df_rolling = factor_ic_df.ewm(rolling_window).mean()[rolling_window - 1:]
