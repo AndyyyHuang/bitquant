@@ -91,7 +91,7 @@ class MinerEvaluationWindow(BaseModel):
 class StreamingPortfolioHistory(bt.StreamingSynapse):
 
     miner_window: MinerEvaluationWindow = Field(..., allow_mutation=False)
-    portfolio_history: List[PortfolioRecord] = Field(default_factory=list(), allow_mutation=True)
+    portfolio_history: List[PortfolioRecord] = Field(default_factory=list, allow_mutation=True)
 
     # @validator('portfolio_history', each_item=True)
     # def check_timestamp_in_range(cls, v, values, **kwargs):
