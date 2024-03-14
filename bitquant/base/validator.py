@@ -179,7 +179,7 @@ class QuantValidator(BaseNeuron):
             # miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
             miner_uids = [1]
             for i in [0,1]:
-                bt.logging.info("availability:", i, self.check_uid_availability(i))
+                bt.logging.info("availability:", i, self.check_uid_availability(i, self.config.neuron.vpermit_tao_limit))
 
             # search_query = SearchSynapse(
             #     query_string=query_string,
