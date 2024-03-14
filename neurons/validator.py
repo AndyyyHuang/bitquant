@@ -24,16 +24,16 @@ import time
 import bittensor as bt
 
 from bitquant.base.validator import QuantValidator
+from bitquant.utils.timeutils import TimeUtils
 
 def run_validator():
-    with QuantValidator() as validator:
-        ...
+    with QuantValidator(evaluation_window=TimeUtils.interval_str_to_ms("4h"), evaluator=None) as validator:
+        while True:
+            bt.logging.info("Validator running...", time.time())
+            time.sleep(5)
 
 
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
-    with QuantValidator(evaluation_window=None, evaluator=None) as validator:
-        while True:
-            bt.logging.info("Validator running...", time.time())
-            time.sleep(5)
+    run_validator()
