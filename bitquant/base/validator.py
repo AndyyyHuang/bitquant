@@ -209,8 +209,9 @@ class QuantValidator(BaseNeuron):
             # bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
             # # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
             # self.update_scores(rewards, miner_uids)
-        except Exception as e:
-            bt.logging.error(f"Error during forward: {e}")
+        except Exception as err:
+            bt.logging.error("Error during validation", str(err))
+            bt.logging.debug(print_exception(type(err), err, err.__traceback__))
 
     async def concurrent_forward(self):
         coroutines = [
