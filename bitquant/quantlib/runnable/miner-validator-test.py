@@ -77,7 +77,7 @@ def validator(portfolio_record_lis):
     # prepare data for evaluation
     portfolio_weight_matrix = portfolio_weight_df.to_numpy()
     price_matrix = data.loc[
-        [ts + TimeUtils.str_to_timedelta(interval) for ts in ts_lis], ["open", "low", "high", "close",
+        ([ts + TimeUtils.str_to_timedelta(interval) for ts in ts_lis], symbols), ["open", "low", "high", "close",
                                                                        "vwap"]].values.reshape(len(ts_lis),
                                                                                                len(symbols), 5)
 
@@ -85,7 +85,7 @@ def validator(portfolio_record_lis):
     min_notional = symbol_info.set_index("symbol").loc[symbols, "notional"].values
 
     evaluator = Evaluator()
-    profit_ratio = evaluator.evaluate(portfolio_weight_matrix, price_matrix, init_asset_value=10000, taker_fee=0.0004,
+    profit_ratio = evaluator.evaluate(portfolio_weight_matrix, price_matrix, init_cash=10000, order_size=10000, taker_fee=0.0004,
                                       volume_precision=volume_precision, min_notional=min_notional)
     print(f"Miner's profit ratio: {round(profit_ratio*100, 3)}%")
 
