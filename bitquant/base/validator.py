@@ -1,6 +1,7 @@
 import copy
 import asyncio
 import threading
+from collections import defaultdict
 from pathlib import Path
 from traceback import print_exception
 from typing import List
@@ -8,7 +9,7 @@ from typing import List
 import bittensor as bt
 
 from bitquant.base.neuron import BaseNeuron
-from bitquant.base.protocol import StreamingPortfolioHistory, MinerEvaluationWindow
+from bitquant.base.protocol import PortfolioRecord
 from bitquant.utils.timeutils import TimeUtils
 import torch
 
@@ -18,13 +19,13 @@ class QuantValidator(BaseNeuron):
         self.evaluator = evaluator
         # initiate neuron
         super().__init__(config, type(self).__name__)
-
-        # Save a copy of the hotkeys to local memory.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
-
-        # Dendrite lets us send messages to other nodes (axons) in the network.
-        self.dendrite = bt.dendrite(wallet=self.wallet)
-        bt.logging.info(f"Dendrite: {self.dendrite}")
+        self.axon = bt.axon(wallet=self.wallet, config=self.config, port=self.config.axon.port)
+        self.axon.attach(
+            forward_fn=self.forward,
+            # blacklist_fn=self.blacklist,
+            # priority_fn=self.priority,
+        )
 
         # Set up initial scoring weights for validation
         bt.logging.info("Building validation weights.")
@@ -32,11 +33,8 @@ class QuantValidator(BaseNeuron):
 
         # self.load_state()
 
-        # Init sync with the network. Updates the metagraph.
-        self.sync()
+        self.miner_portfolio_history = defaultdict(list)
 
-        # Serve axon to enable external connections.
-        self.serve_axon()
 
         # Create asyncio event loop to manage async tasks.
         self.loop = asyncio.get_event_loop()
@@ -47,29 +45,6 @@ class QuantValidator(BaseNeuron):
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
 
-    # TODO maybe this should be in BaseNeuron?
-    def serve_axon(self):
-        """Serve axon to enable external connections."""
-
-        bt.logging.info("serving ip to chain...")
-        try:
-            self.axon = bt.axon(wallet=self.wallet, config=self.config)
-
-            try:
-                self.subtensor.serve_axon(
-                    netuid=self.config.netuid,
-                    axon=self.axon,
-                )
-                bt.logging.info(
-                    f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
-                )
-            except Exception as e:
-                bt.logging.error(f"Failed to serve Axon with exception: {e}")
-                pass
-
-        except Exception as e:
-            bt.logging.error(f"Failed to create Axon initialize with exception: {e}")
-            pass
 
 
     def resync_metagraph(self):
@@ -146,147 +121,29 @@ class QuantValidator(BaseNeuron):
             self.config.neuron.full_path + "/state.pt",
         )
 
-    def check_uid_availability(self, uid: int, vpermit_tao_limit: int) -> bool:
-        # Filter non serving axons.
-        if not self.metagraph.axons[uid].is_serving:
-            return False
-        # Filter validator permit > 1024 stake.
-        if self.metagraph.validator_permit[uid]:
-            if self.metagraph.S[uid] > vpermit_tao_limit:
-                return False
-        # Available otherwise.
-        return True
+    # def check_uid_availability(self, uid: int, vpermit_tao_limit: int) -> bool:
+    #     # Filter non serving axons.
+    #     if not self.metagraph.axons[uid].is_serving:
+    #         return False
+    #     # Filter validator permit > 1024 stake.
+    #     if self.metagraph.validator_permit[uid]:
+    #         if self.metagraph.S[uid] > vpermit_tao_limit:
+    #             return False
+    #     # Available otherwise.
+    #     return True
 
     # ===== main functions =====
-    # TODO update
-    async def forward(self):
-        """
-        Validator forward pass. Consists of:
-        - Generating the query
-        - Querying the miners
-        - Getting the responses
-        - Rewarding the miners
-        - Updating the scores
-        """
-        bt.logging.debug(f"validator forwarding")
-        try:
-            now = TimeUtils.now_in_ms()
-            miner_window = MinerEvaluationWindow(
-                start_ms=now,
-                end_ms=now + self.evaluation_window)
-            synapse = StreamingPortfolioHistory(miner_window=miner_window)
-
-            # miner_uids = get_random_uids(self, k=self.config.neuron.sample_size)
-            miner_uids = [1]
-            for i in [0,1]:
-                bt.logging.info("availability:", i, self.check_uid_availability(i, self.config.neuron.vpermit_tao_limit))
-
-            # search_query = SearchSynapse(
-            #     query_string=query_string,
-            #     size=self.config.neuron.search_result_size,
-            #     version=get_version(),
-            # )
-
-            # bt.logging.info(
-            #     f"Sending query: {syn} to miners: {[(uid, self.metagraph.axons[uid] )for uid in miner_uids]}"
-            # )
-
-            # The dendrite client queries the network.
-            responses = await self.dendrite(
-                # Send the query to selected miner axons in the network.
-                axons=[self.metagraph.axons[uid] for uid in miner_uids],
-                # axons=list(self.metagraph.axons),
-                synapse=synapse,
-
-                # TODO check deserialize
-                # deserialize=True,
-                deserialize=False,
-                streaming=True,
-
-                # TODO lol
-                # set the miner query timeout to be 120 seconds to allow more operations in miner
-                # timeout=120,
-                timeout=float(120),
-            )
-
-            for resp in responses:
-                async for chunk in resp:
-                    print(chunk)
-
-            # Log the results for monitoring purposes.
-            bt.logging.info(f"Received responses: {responses}")
-            bt.logging.debug(f"{type(responses)=} {len(responses)=}")
-
-            # rewards = self.evaluator.evaluate(
-            #     search_query.query_string, search_query.size, responses
-            # )
-
-            # bt.logging.info(f"Scored responses: {rewards} for {miner_uids}")
-            # # Update the scores based on the rewards. You may want to define your own update_scores function for custom behavior.
-            # self.update_scores(rewards, miner_uids)
-        except Exception as err:
-            bt.logging.error("Error during validation", str(err))
-            bt.logging.debug(print_exception(type(err), err, err.__traceback__))
-
-    async def concurrent_forward(self):
-        coroutines = [
-            self.forward() for _ in range(self.config.neuron.num_concurrent_forwards)
-        ]
-        await asyncio.gather(*coroutines)
-
     # TODO review
     def run(self):
-        """
-        Initiates and manages the main loop for the miner on the Bittensor network. The main loop handles graceful shutdown on keyboard interrupts and logs unforeseen errors.
+        while True:
+            self.sync()
+            # for amount of time, start evaluating self.miner_portfolio_history
 
-        This function performs the following primary tasks:
-        1. Check for registration on the Bittensor network.
-        2. Continuously forwards queries to the miners on the network, rewarding their responses and updating the scores accordingly.
-        3. Periodically resynchronizes with the chain; updating the metagraph with the latest network state and setting weights.
-
-        The essence of the validator's operations is in the forward function, which is called every step. The forward function is responsible for querying the network and scoring the responses.
-
-        Note:
-            - The function leverages the global configurations set during the initialization of the miner.
-            - The miner's axon serves as its interface to the Bittensor network, handling incoming and outgoing requests.
-
-        Raises:
-            KeyboardInterrupt: If the miner is stopped by a manual interruption.
-            Exception: For unforeseen errors during the miner's operation, which are logged for diagnosis.
-        """
-
-        # Check that validator is registered on the network.
-        self.sync()
-
-        bt.logging.info(f"Validator starting at block: {self.block}")
-
-        # This loop maintains the validator's operations until intentionally stopped.
-        try:
-            while True:
-                bt.logging.info(f"step({self.step}) block({self.block})")
-
-                # Run multiple forwards concurrently.
-                self.loop.run_until_complete(self.concurrent_forward())
-
-                # Check if we should exit.
-                if self.should_exit:
-                    break
-
-                # Sync metagraph and potentially set weights.
-                self.sync()
-
-                self.step += 1
-
-        # If someone intentionally stops the validator, it'll safely terminate operations.
-        except KeyboardInterrupt:
-            self.axon.stop()
-            bt.logging.success("Validator killed by keyboard interrupt.")
-            exit(0)
-
-        # In case of unforeseen errors, the validator will log the error and continue operations.
-        except Exception as err:
-            bt.logging.error("Error during validation", str(err))
-            bt.logging.debug(print_exception(type(err), err, err.__traceback__))
+    async def forward(self, query: PortfolioRecord) -> PortfolioRecord:
+        now_ms = TimeUtils.now_in_ms()
+        self.miner_portfolio_history[query.miner_uid].append((now_ms, query.portfolio))
+        query.response_code = "200"
+        return query
 
     # ===== state functions ======
 

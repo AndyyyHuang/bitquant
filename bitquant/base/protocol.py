@@ -50,22 +50,13 @@ class SymbolValueDict(dict):
         raise AttributeError("SymbolValueDict class is immutable")
 
 
-class PortfolioRecord(BaseModel):
-    portfolio: SymbolValueDict
-    timestamp_ms: int = TimeUtils.now_in_ms()
+class PortfolioRecord(bt.Synapse):
+    portfolio: SymbolValueDict = Field(..., allow_mutation=False)
+    miner_uid: int = Field(..., allow_mutation=False)
+    response_code: str = Field(..., allow_mutation=False)
 
-    def to_dict(self) -> Dict[str, Union[SymbolValueDict, int]]:
-        return {
-            'portfolio': self.portfolio,
-            'timestamp_ms': self.timestamp_ms
-        }
-
-    @classmethod
-    def from_dict(cls, json_data: Dict) -> "PortfolioRecord":
-        return cls(
-            portfolio=json_data['portfolio'],
-            timestamp_ms=json_data['timestamp_ms']
-        )
+    def deserialize(self) -> dict:
+        return self.portfolio
 
     # HACK figure out why type checking is not happening automatically
     @validator('portfolio', pre=True)
