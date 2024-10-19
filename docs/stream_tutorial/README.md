@@ -13,7 +13,7 @@ python miner.py --netuid 8 --wallet.name default --wallet.hotkey miner --subtens
 
 Run the client:
 ```bash
-python client.py --netuid 8 --my_uid 1 --network test
+python ethereum.py --netuid 8 --my_uid 1 --network test
 ```
 
 ## Overview
@@ -96,7 +96,7 @@ class MyStreamingSynapse(bt.StreamingSynapse):
         return self.completion
 
     # implement your `process_streaming_response` logic to actually yield objects to the streamer
-    # this effectively defines the async generator that you'll recieve on the client side
+    # this effectively defines the async generator that you'll recieve on the data_engine side
     async def process_streaming_response(self, response: MyStreamingSynapse):
         # this is an example of how you might process a streaming response
         # iterate over the response content and yield each line
@@ -173,31 +173,31 @@ class MyStreamPromptingMiner(bt.Miner):
 
         # This function is called asynchronously to process the input text and send back tokens
         # as a streaming response. It essentially produces the async generator that will be
-        # consumed by the client with an `async for` loop.
+        # consumed by the data_engine with an `async for` loop.
         async def _forward(text: str, send: Send):
             # `text` may be the input prompt to your model in a real-world scenario.
             # let's tokenize them into IDs for the sake of this example.
             input_ids = tokenizer(text, return_tensors="pt").input_ids.squeeze()
             
-            # You may want to buffer your tokens before sending them back to the client.
-            # this can be useful so we aren't flooding the client with individual tokens
+            # You may want to buffer your tokens before sending them back to the data_engine.
+            # this can be useful so we aren't flooding the data_engine with individual tokens
             # and allows you more fine-grained control over how much data is sent back 
             # with each yield.
-            N = 3  # Number of tokens to send back to the client at a time
+            N = 3  # Number of tokens to send back to the data_engine at a time
             buffer = []
-            # Iterate over the tokens and send the generationed tokens back to the client  
+            # Iterate over the tokens and send the generationed tokens back to the data_engine  
             # when we have sufficient (N) tokens in the buffer.       
             for token in model(input_ids):
                 buffer.append(token) # Add token to buffer
 
-                # If buffer has N tokens, send them back to the client.
+                # If buffer has N tokens, send them back to the data_engine.
                 if len(buffer) == N:
                     joined_buffer = "".join(buffer)
-                    # Send the tokens back to the client
+                    # Send the tokens back to the data_engine
                     # This is the core of the streaming response and the format 
                     # is important. The `send` function is provided by the ASGI server
-                    # and is responsible for sending the response back to the client.
-                    # This buffer will be received by the client as a single chunk of
+                    # and is responsible for sending the response back to the data_engine.
+                    # This buffer will be received by the data_engine as a single chunk of
                     # data, which can then be split into individual tokens!
                     await send(
                         {
@@ -258,14 +258,14 @@ class StreamingTemplateMiner(prompting.Miner):
         This function serves as the main entry point for handling streaming prompts. It takes
         the incoming synapse which contains messages to be processed and returns a streaming
         response. The function uses the GPT-2 tokenizer and a simulated model to tokenize and decode
-        the incoming message, and then sends the response back to the client token by token.
+        the incoming message, and then sends the response back to the data_engine token by token.
 
         Args:
             synapse (StreamPrompting): The incoming StreamPrompting instance containing the messages to be processed.
 
         Returns:
             StreamPrompting: The streaming response object which can be used by other functions to
-                            stream back the response to the client.
+                            stream back the response to the data_engine.
 
         Usage:
             This function can be extended and customized based on specific requirements of the
@@ -286,7 +286,7 @@ class StreamingTemplateMiner(prompting.Miner):
 
             This function takes an input text, tokenizes it using the GPT-2 tokenizer, and then
             uses the simulated model to decode token IDs into strings. It then sends each token
-            back to the client as a streaming response, with a delay between tokens to simulate
+            back to the data_engine as a streaming response, with a delay between tokens to simulate
             the effect of real-time streaming.
 
             Args:
@@ -296,7 +296,7 @@ class StreamingTemplateMiner(prompting.Miner):
             Usage:
                 This function can be adjusted based on the streaming requirements, speed of
                 response, or the model being used. Developers can also introduce more sophisticated
-                processing steps or modify how tokens are sent back to the client.
+                processing steps or modify how tokens are sent back to the data_engine.
             """
             bt.logging.trace("In inner _PROMPT()")
             input_ids = tokenizer(text, return_tensors="pt").input_ids.squeeze()
@@ -304,11 +304,11 @@ class StreamingTemplateMiner(prompting.Miner):
             bt.logging.debug(f"Input text: {text}")
             bt.logging.debug(f"Input ids: {input_ids}")
              
-            N = 3  # Number of tokens to send back to the client at a time
+            N = 3  # Number of tokens to send back to the data_engine at a time
             for token in model(input_ids):
                 bt.logging.trace(f"appending token: {token}")
                 buffer.append(token)
-                # If buffer has N tokens, send them back to the client.
+                # If buffer has N tokens, send them back to the data_engine.
                 if len(buffer) == N:
                     time.sleep(0.1)
                     joined_buffer = "".join(buffer)
@@ -378,7 +378,7 @@ metagraph = bt.metagraph(
 my_uid = 1
 axon = metagraph.axons[my_uid]
 
-# Create a Dendrite instance to handle client-side communication.
+# Create a Dendrite instance to handle data_engine-side communication.
 dendrite = bt.dendrite(wallet=wallet)
 
 
@@ -452,7 +452,7 @@ metagraph
 axon = metagraph.axons[62]
 axon
 
-# Create a Dendrite instance to handle client-side communication.
+# Create a Dendrite instance to handle data_engine-side communication.
 d = bt.dendrite(wallet=wallet)
 d
 

@@ -78,7 +78,7 @@ class BaseMinerNeuron(BaseNeuron):
 
     def run(self):
         """
-        Initiates and manages the main loop for the miner on the Bittensor network. The main loop handles graceful shutdown on keyboard interrupts and logs unforeseen errors.
+        Initiates and manages the main loop for the miner on the Bittensor network. The main loop handles graceful shutdown on keyboard interrupts and log unforeseen errors.
 
         This function performs the following primary tasks:
         1. Check for registration on the Bittensor network.
