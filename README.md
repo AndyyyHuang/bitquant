@@ -21,11 +21,17 @@
 
 ## Introduction
 
-BitQuant is a Bittensor Subnet for quantitative trading competitions where miners need to provide their factor-based signal (long/short) and validators evaluate the performance based on the portfolio returns constructed by their signal.
-Based on portfolio metrics such as omega score and total portfolio return, weights/incentive get set to reward the best miners.
-We provide factor mining framework, factor combination methodology, and backtesting system for miners to 
-construct their factor-based trading strategies. If you don't have any mature strategy yet, highly recommend you to refer to these 
-well-designed framework we provided which will help you construct your own strategy from zero. 
+BitQuant aims to create a decentralized marketplace for trading signals, where:
+
+1. Miners compete to provide the most profitable trading signals
+
+2. Validators assess signal quality through actual portfolio performance
+
+3. The network rewards successful strategies through built-in incentive mechanisms
+
+This creates a self-sustaining ecosystem where quality trading strategies are rewarded, and the collective intelligence of the network can be leveraged for better trading outcomes.
+
+We also provide comprehensive framework for trading strategy development—from factor mining and combination to strategy backtesting. If you don't have any mature strategy yet, highly recommend you to refer to these well-designed framework we provided which will help you build your own strategy from scratch. 
 
 Have fun!
 
